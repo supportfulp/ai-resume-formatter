@@ -1,0 +1,59 @@
+Kareem Makki
+Ref#: SDA01-AMH
+
+Data Analyst and Engineer with 8+ years of experience in accounting, finance, data analytics, and visualization. Expertise in SQL, Python, Tableau, Looker, and Power BI.
+Good communication skills.
+Fluent in Arabic and English.
+
+Key Skills
+
+SQL 		 Azure Data Factory (ADF), Azure SQL Database 		 Azure Data Lake Storage
+Azure Blob Storage 		 Power BI, Tableau 			 Looker
+Python 		 ETL Processes 			 Apache Spark
+Apache Hadoop 		 MS Office 			 Twinfield
+QuickBooks 		 Ezora
+
+Experience
+
+2021 – Present
+Data Scientist & Senior BI Analyst • Upwork & Sahmik, Remote
+
+*   Utilized Alteryx developer macros, Dynamic Input, and Formula tools to manipulate large datasets alongside SQL and Python, delivering actionable insights for business decision-making.
+*   Automated data extraction and transformation in Alteryx, then fed real-time outputs into Tableau and Power BI dashboards.
+*   Authored daily and weekly content for the Qatar Stock Exchange (QSE) report and produced quarterly articles in both Arabic and English, highlighting financial disclosures for QSE-listed companies.
+*   Created an interactive website portal for IRP Widgets, enhancing user access to company information and driving higher engagement.
+*   Digitized audited financial statements for companies associated with the Dubai Financial Market, Abu Dhabi Securities Exchange, and Saudi Exchange during FY-2022.
+
+2025 – Present
+Course Instructor • Coursera
+
+*   Developed and delivered comprehensive, step-by-step video lessons focused on mastering Tableau’s parameters and filters.
+*   Guided finance professionals and analysts in building dynamic financial dashboards for effective data exploration and analysis.
+*   Delivered hands-on training on Alteryx Designer, emphasizing data preparation, blending, and analytics.
+*   Provided real-world case studies to showcase advanced Alteryx functionalities and best practices.
+
+2021
+Business Analyst • SchemaZone, Toronto, Canada (Remote)
+
+*   Employed theoretical frameworks such as SWOT analysis and the McKinsey 7S model to identify and rectify client strategy gaps.
+*   Leveraged financial metrics, including solvency, liquidity, and profitability ratios, to assess the company's current financial well-being.
+*   Executed strategies using the balanced scorecard framework to evaluate the company's organizational structure and long-term objectives.
+
+2019 – 2021
+Accountant • Moore Stephens, Beirut, Lebanon
+
+*   Supervised an accounting internship program, resulting in improved tax reporting and financial statement preparation efficiency.
+*   Provided financial statement analysis, tax compliance, and accounting services to diverse industries.
+*   Increased client revenue through strategic financial data management, chart of accounts optimization, and demonstrated financial acumen.
+
+2019 – 2020
+Research Assistant • American University of Beirut, Beirut, Lebanon
+
+*   Evaluated the impact of AS18 on enhancing audit rigor and precision in relation to RPTs (Related Party Transactions).
+*   Used general and RPT-specific restatements as audit quality indicators.
+*   Categorized RPTs into business and non-business groups based on transaction type and involved parties.
+
+Education
+
+2022 Post Graduate Program in Data Science and Business Analytics, University of Texas Austin, McCombs School of Business
+2018 BSc in Economics, Lebanese American University, Adnan Kassar School of Business
