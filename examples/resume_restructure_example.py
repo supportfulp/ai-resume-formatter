@@ -26,7 +26,7 @@ def main():
     formatter = ResumeFormatter(api_key=api_key)
     
     # Example resume file path
-    resume_file = "data/pre/Kareem Makki CV.pdf"
+    resume_file = "/Users/mac/projects/resume_project/data/pre/Ahmad Mahmoud CV.pdf"
     
     if not Path(resume_file).exists():
         print(f"Resume file not found: {resume_file}")
@@ -42,21 +42,21 @@ def main():
     )
     
     try:
-        # print("=== Resume Restructuring Example ===\n")
+        print("=== Resume Restructuring Example ===\n")
         
-        # # Method 1: Direct restructuring from file
-        # print("1. Direct restructuring from file:")
-        # print("-" * 50)
+        # Method 1: Direct restructuring from file
+        print("1. Direct restructuring from file:")
+        print("-" * 50)
         
-        # reference_number = "SDA01-AMH"  # Custom reference number
-        # restructured_resume = restructure_chain.restructure(request, reference_number)
+        reference_number = "SDA01-AMH"  # Custom reference number
+        restructured_resume = restructure_chain.restructure(request, reference_number)
         
-        # print(restructured_resume)
-        # print("\n" + "="*80 + "\n")
+        print(restructured_resume)
+        print("\n" + "="*80 + "\n")
         
-        # # Method 2: Two-step process (extract then restructure)
-        # print("2. Two-step process (extract then restructure):")
-        # print("-" * 50)
+        # Method 2: Two-step process (extract then restructure)
+        print("2. Two-step process (extract then restructure):")
+        print("-" * 50)
         
         # First, extract structured data using the main formatter
         result = formatter.format(request)
@@ -76,17 +76,17 @@ def main():
         print("\nRestructured resume:")
         print(restructured_from_data)
         
-        # # Save the restructured resume
-        # output_file = f"output/{extracted_data.name}_restructured.txt"
-        # Path("output").mkdir(exist_ok=True)
+        # Save the restructured resume
+        output_file = f"/Users/mac/projects/resume_project/output/{extracted_data.name}_restructured_method1.txt"
+        Path("output").mkdir(exist_ok=True)
         
-        # with open(output_file, 'w', encoding='utf-8') as f:
-        #     f.write(restructured_resume)
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(restructured_resume)
         
-        # print(f"\nRestructured resume saved to: {output_file}")
+        print(f"\nRestructured resume saved to: {output_file}")
 
         # Save the restructured resume from data
-        output_file_data = f"output/{extracted_data.name}_restructured_from_data.txt"
+        output_file_data = f"/Users/mac/projects/resume_project/output/{extracted_data.name}_restructured_method2.txt"
         with open(output_file_data, 'w', encoding='utf-8') as f:
             f.write(restructured_from_data)
 
