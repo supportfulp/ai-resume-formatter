@@ -1,0 +1,329 @@
+import psycopg2
+import psycopg2.extras
+import os
+import hashlib
+import time
+from typing import Optional, Dict, Any
+from contextlib import contextmanager
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class DatabaseManager:
+    """Manages PostgreSQL database connections and operations."""
+    
+    def __init__(self):
+        self.db_config = {
+            'host': os.getenv('POSTGRES_HOST', 'localhost'),
+            'port': os.getenv('POSTGRES_PORT', '5432'),
+            'database': os.getenv('POSTGRES_DB', 'resume_processor'),
+            'user': os.getenv('POSTGRES_USER', 'postgres'),
+            'password': os.getenv('POSTGRES_PASSWORD', 'password')
+        }
+    
+    @contextmanager
+    def get_connection(self):
+        """Context manager for database connections."""
+        conn = None
+        try:
+            conn = psycopg2.connect(**self.db_config)
+            yield conn
+        except Exception as e:
+            logger.error(f"Database connection error: {e}")
+            raise
+        finally:
+            if conn:
+                conn.close()
+    
+    def init_database(self):
+        """Initialize database tables."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                # Create users table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        username VARCHAR(50) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        email VARCHAR(100),
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_login TIMESTAMP,
+                        is_active BOOLEAN DEFAULT TRUE
+                    )
+                """)
+                
+                # Create api_keys table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS api_keys (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        api_key_hash VARCHAR(255) NOT NULL,
+                        masked_key VARCHAR(50) NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_used TIMESTAMP,
+                        is_active BOOLEAN DEFAULT TRUE
+                    )
+                """)
+                
+                # Create user_sessions table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS user_sessions (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        session_token VARCHAR(255) UNIQUE NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        expires_at TIMESTAMP NOT NULL,
+                        is_active BOOLEAN DEFAULT TRUE
+                    )
+                """)
+                
+                # Create processing_history table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS processing_history (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        filename VARCHAR(255) NOT NULL,
+                        processing_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        status VARCHAR(50) DEFAULT 'completed',
+                        metadata JSONB
+                    )
+                """)
+                
+                conn.commit()
+                logger.info("Database tables initialized successfully")
+    
+    def create_user(self, username: str, password: str, email: str = None) -> bool:
+        """Create a new user account."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    password_hash = hashlib.sha256(password.encode()).hexdigest()
+                    cursor.execute("""
+                        INSERT INTO users (username, password_hash, email)
+                        VALUES (%s, %s, %s)
+                        RETURNING id
+                    """, (username, password_hash, email))
+                    user_id = cursor.fetchone()[0]
+                    conn.commit()
+                    logger.info(f"User {username} created successfully with ID {user_id}")
+                    return True
+        except psycopg2.IntegrityError:
+            logger.warning(f"Username {username} already exists")
+            return False
+        except Exception as e:
+            logger.error(f"Error creating user {username}: {e}")
+            return False
+    
+    def verify_user(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+        """Verify user credentials and return user info."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    password_hash = hashlib.sha256(password.encode()).hexdigest()
+                    cursor.execute("""
+                        SELECT id, username, email, created_at, last_login
+                        FROM users 
+                        WHERE username = %s AND password_hash = %s AND is_active = TRUE
+                    """, (username, password_hash))
+                    user = cursor.fetchone()
+                    
+                    if user:
+                        # Update last login
+                        cursor.execute("""
+                            UPDATE users SET last_login = CURRENT_TIMESTAMP
+                            WHERE id = %s
+                        """, (user['id'],))
+                        conn.commit()
+                        logger.info(f"User {username} logged in successfully")
+                        return dict(user)
+                    else:
+                        logger.warning(f"Invalid login attempt for username: {username}")
+                        return None
+        except Exception as e:
+            logger.error(f"Error verifying user {username}: {e}")
+            return None
+    
+    def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get user information by ID."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    cursor.execute("""
+                        SELECT id, username, email, created_at, last_login
+                        FROM users 
+                        WHERE id = %s AND is_active = TRUE
+                    """, (user_id,))
+                    user = cursor.fetchone()
+                    return dict(user) if user else None
+        except Exception as e:
+            logger.error(f"Error getting user {user_id}: {e}")
+            return None
+    
+    def save_api_key(self, user_id: int, api_key: str) -> bool:
+        """Save user's API key."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+                    masked_key = api_key[:8] + "..." + api_key[-4:] if len(api_key) > 12 else "***"
+                    
+                    # Deactivate existing API keys for this user
+                    cursor.execute("""
+                        UPDATE api_keys SET is_active = FALSE
+                        WHERE user_id = %s
+                    """, (user_id,))
+                    
+                    # Insert new API key
+                    cursor.execute("""
+                        INSERT INTO api_keys (user_id, api_key_hash, masked_key)
+                        VALUES (%s, %s, %s)
+                    """, (user_id, api_key_hash, masked_key))
+                    
+                    conn.commit()
+                    logger.info(f"API key saved for user {user_id}")
+                    return True
+        except Exception as e:
+            logger.error(f"Error saving API key for user {user_id}: {e}")
+            return False
+    
+    def get_api_key(self, user_id: int) -> Optional[str]:
+        """Get user's active API key hash."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT api_key_hash FROM api_keys
+                        WHERE user_id = %s AND is_active = TRUE
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    """, (user_id,))
+                    result = cursor.fetchone()
+                    return result[0] if result else None
+        except Exception as e:
+            logger.error(f"Error getting API key for user {user_id}: {e}")
+            return None
+    
+    def create_session(self, user_id: int, session_token: str, expires_in_hours: int = 24) -> bool:
+        """Create a new user session."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO user_sessions (user_id, session_token, expires_at)
+                        VALUES (%s, %s, CURRENT_TIMESTAMP + INTERVAL '%s hours')
+                    """, (user_id, session_token, expires_in_hours))
+                    conn.commit()
+                    logger.info(f"Session created for user {user_id}")
+                    return True
+        except Exception as e:
+            logger.error(f"Error creating session for user {user_id}: {e}")
+            return False
+    
+    def validate_session(self, session_token: str) -> Optional[int]:
+        """Validate session token and return user ID."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT user_id FROM user_sessions
+                        WHERE session_token = %s AND expires_at > CURRENT_TIMESTAMP AND is_active = TRUE
+                    """, (session_token,))
+                    result = cursor.fetchone()
+                    return result[0] if result else None
+        except Exception as e:
+            logger.error(f"Error validating session: {e}")
+            return None
+    
+    def delete_session(self, session_token: str) -> bool:
+        """Delete a user session."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        UPDATE user_sessions SET is_active = FALSE
+                        WHERE session_token = %s
+                    """, (session_token,))
+                    conn.commit()
+                    logger.info(f"Session {session_token} deleted")
+                    return True
+        except Exception as e:
+            logger.error(f"Error deleting session: {e}")
+            return False
+    
+    def save_processing_history(self, user_id: int, filename: str, metadata: Dict = None) -> bool:
+        """Save processing history for a user."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO processing_history (user_id, filename, metadata)
+                        VALUES (%s, %s, %s)
+                    """, (user_id, filename, psycopg2.extras.Json(metadata) if metadata else None))
+                    conn.commit()
+                    logger.info(f"Processing history saved for user {user_id}")
+                    return True
+        except Exception as e:
+            logger.error(f"Error saving processing history: {e}")
+            return False
+    
+    def get_processing_history(self, user_id: int, limit: int = 10) -> list:
+        """Get processing history for a user."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    cursor.execute("""
+                        SELECT filename, processing_date, status, metadata
+                        FROM processing_history
+                        WHERE user_id = %s
+                        ORDER BY processing_date DESC
+                        LIMIT %s
+                    """, (user_id, limit))
+                    return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Error getting processing history: {e}")
+            return []
+    
+    def cleanup_expired_sessions(self):
+        """Clean up expired sessions."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        UPDATE user_sessions 
+                        SET is_active = FALSE
+                        WHERE expires_at < CURRENT_TIMESTAMP
+                    """)
+                    deleted_count = cursor.rowcount
+                    conn.commit()
+                    if deleted_count > 0:
+                        logger.info(f"Cleaned up {deleted_count} expired sessions")
+        except Exception as e:
+            logger.error(f"Error cleaning up expired sessions: {e}")
+
+
+# Global database manager instance
+db_manager = DatabaseManager()
+
+
+def init_database():
+    """Initialize the database."""
+    db_manager.init_database()
+
+
+def create_demo_user():
+    """Create demo user if it doesn't exist."""
+    try:
+        if not db_manager.verify_user("demo", "demo123"):
+            db_manager.create_user("demo", "demo123", "demo@example.com")
+            logger.info("Demo user created successfully")
+    except Exception as e:
+        logger.error(f"Error creating demo user: {e}")
+
+
+# Initialize database and demo user on import
+if __name__ == "__main__":
+    init_database()
+    create_demo_user() 

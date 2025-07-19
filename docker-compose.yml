@@ -1,21 +1,53 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:13.21-alpine3.21
+    container_name: resume-processor-db
+    environment:
+      POSTGRES_DB: resume_processor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d resume_processor"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - resume-network
+
+  # Resume Processor App
   resume-processor:
     build: .
     container_name: resume-processor-app
     ports:
       - "8501:8501"
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=resume_processor
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
       - PYTHONPATH=/app
     volumes:
       # Mount source code for development (comment out for production)
       - ./src:/app/src
       - ./streamlit_app.py:/app/streamlit_app.py
+      - ./database.py:/app/database.py
       - ./requirements.txt:/app/requirements.txt
       # Mount output directory for persistent storage
       - ./output:/app/output
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
@@ -47,4 +79,6 @@ networks:
     driver: bridge
 
 volumes:
+  postgres_data:
+    driver: local
   output-data: 

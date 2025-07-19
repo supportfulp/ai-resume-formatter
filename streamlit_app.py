@@ -8,6 +8,7 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 import hashlib
 import time
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -18,6 +19,21 @@ sys.path.append(str(Path(__file__).parent))
 from src.chains.resume_restructure_chain import ResumeRestructureChain
 from src.chains.resume_formatter import ResumeFormatter
 from src.models.resume_models import ResumeProcessingRequest
+from src.docx_export.create_resume_document import ResumeDocumentGenerator
+
+# Import database manager
+try:
+    from database import db_manager, init_database, create_demo_user
+    DATABASE_AVAILABLE = True
+except ImportError as e:
+    st.error(f"Database module not found. Error: {e}")
+    st.info("Please ensure database.py is in the same directory and all dependencies are installed.")
+    st.info("Run: pip install -r requirements.txt")
+    DATABASE_AVAILABLE = False
+except Exception as e:
+    st.warning(f"Database connection failed: {e}")
+    st.info("Running in demo mode without database persistence.")
+    DATABASE_AVAILABLE = False
 
 
 def hash_password(password: str) -> str:
@@ -38,31 +54,30 @@ def validate_api_key(api_key: str) -> bool:
     return len(api_key) >= 30 and (api_key.startswith('AI') or 'google' in api_key.lower())
 
 
-def create_user_account(username: str, password: str) -> bool:
-    """Create a new user account (simple in-memory storage for demo)."""
-    if 'users' not in st.session_state:
-        st.session_state.users = {}
-    
-    if username in st.session_state.users:
-        return False
-    
-    st.session_state.users[username] = {
-        'password_hash': hash_password(password),
-        'created_at': time.time()
-    }
-    return True
+def create_user_account(username: str, password: str, email: str = None) -> bool:
+    """Create a new user account in database."""
+    if DATABASE_AVAILABLE:
+        return db_manager.create_user(username, password, email)
+    else:
+        # Demo mode - always return True for demo user
+        return username == "demo" and password == "demo123"
 
 
-def verify_user_credentials(username: str, password: str) -> bool:
-    """Verify user login credentials."""
-    if 'users' not in st.session_state:
-        return False
-    
-    if username not in st.session_state.users:
-        return False
-    
-    stored_hash = st.session_state.users[username]['password_hash']
-    return stored_hash == hash_password(password)
+def verify_user_credentials(username: str, password: str) -> Dict[str, Any]:
+    """Verify user login credentials and return user info."""
+    if DATABASE_AVAILABLE:
+        return db_manager.verify_user(username, password)
+    else:
+        # Demo mode - only allow demo user
+        if username == "demo" and password == "demo123":
+            return {
+                'id': 1,
+                'username': 'demo',
+                'email': 'demo@example.com',
+                'created_at': None,
+                'last_login': None
+            }
+        return None
 
 
 def login_page():
@@ -95,18 +110,23 @@ def login_page():
             if login_button:
                 if not username or not password:
                     st.error("❌ Please enter both username and password!")
-                elif verify_user_credentials(username, password):
-                    st.session_state.user_logged_in = True
-                    st.session_state.username = username
-                    st.success("✅ Login successful! Redirecting to API key setup...")
-                    st.rerun()
                 else:
-                    st.error("❌ Invalid username or password!")
+                    user_info = verify_user_credentials(username, password)
+                    if user_info:
+                        st.session_state.user_logged_in = True
+                        st.session_state.user_id = user_info['id']
+                        st.session_state.username = user_info['username']
+                        st.session_state.user_email = user_info.get('email')
+                        st.success("✅ Login successful! Redirecting to API key setup...")
+                        st.rerun()
+                    else:
+                        st.error("❌ Invalid username or password!")
     
     with tab2:
         st.markdown("### Create New Account")
         with st.form("register_form"):
             new_username = st.text_input("👤 New Username", placeholder="Choose a username")
+            new_email = st.text_input("📧 Email (optional)", placeholder="your.email@example.com")
             new_password = st.text_input("🔒 New Password", type="password", placeholder="Choose a password")
             confirm_password = st.text_input("🔒 Confirm Password", type="password", placeholder="Confirm your password")
             
@@ -119,19 +139,28 @@ def login_page():
                     st.error("❌ Passwords don't match!")
                 elif len(new_password) < 6:
                     st.error("❌ Password must be at least 6 characters!")
-                elif create_user_account(new_username, new_password):
+                elif create_user_account(new_username, new_password, new_email):
                     st.success("✅ Account created successfully! You can now login.")
                 else:
                     st.error("❌ Username already exists!")
     
     # Demo account info
     st.markdown("---")
-    st.markdown("""
-    <div style='text-align: center; color: #666; font-size: 0.8em;'>
-        <p>💡 <strong>Demo Account:</strong> username: 'demo', password: 'demo123'</p>
-        <p>🔒 Your data is stored securely in your browser session only</p>
-    </div>
-    """, unsafe_allow_html=True)
+    if st.session_state.get("demo_mode"):
+        st.markdown("""
+        <div style='text-align: center; color: #666; font-size: 0.8em;'>
+            <p>🔧 <strong>Demo Mode:</strong> Running without database persistence</p>
+            <p>💡 <strong>Demo Account:</strong> username: 'demo', password: 'demo123'</p>
+            <p>🔒 Your data is stored in your browser session only</p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style='text-align: center; color: #666; font-size: 0.8em;'>
+            <p>💡 <strong>Demo Account:</strong> username: 'demo', password: 'demo123'</p>
+            <p>🔒 Your data is stored securely in the database</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 def api_key_setup_page():
@@ -204,15 +233,28 @@ def api_key_setup_page():
             st.warning("⚠️ API key format looks invalid. Please check your key.")
             st.info("💡 Google API keys typically start with 'AIzaSy' and are about 39 characters long.")
         else:
-            # Store API key securely in session state
-            st.session_state.api_key = api_key
-            st.session_state.api_key_hash = hash_api_key(api_key)
-            st.session_state.api_key_set = True
-            st.session_state.api_key_setup_time = time.time()
-            
-            st.success("✅ API key set successfully!")
-            st.balloons()
-            st.rerun()
+            # Store API key in database or session state
+            if DATABASE_AVAILABLE:
+                user_id = st.session_state.get('user_id')
+                if user_id and db_manager.save_api_key(user_id, api_key):
+                    st.session_state.api_key = api_key
+                    st.session_state.api_key_set = True
+                    st.session_state.api_key_setup_time = time.time()
+                    
+                    st.success("✅ API key set successfully!")
+                    st.balloons()
+                    st.rerun()
+                else:
+                    st.error("❌ Failed to save API key. Please try again.")
+            else:
+                # Demo mode - store in session state only
+                st.session_state.api_key = api_key
+                st.session_state.api_key_set = True
+                st.session_state.api_key_setup_time = time.time()
+                
+                st.success("✅ API key set successfully! (Demo mode)")
+                st.balloons()
+                st.rerun()
     
     # Back to login button
     if st.button("← Back to Login", key="back_to_login_btn"):
@@ -236,11 +278,13 @@ def api_key_setup_page():
 def logout_button():
     """Render logout button in sidebar."""
     if st.sidebar.button("🚪 Logout", type="secondary"):
+        # Clear session state
         st.session_state.authenticated = False
         st.session_state.user_logged_in = False
+        st.session_state.user_id = None
         st.session_state.username = None
+        st.session_state.user_email = None
         st.session_state.api_key = None
-        st.session_state.api_key_hash = None
         st.session_state.api_key_set = False
         st.session_state.api_key_setup_time = None
         st.session_state.show_api_key_setup = False
@@ -251,7 +295,12 @@ def show_user_info():
     """Show user information in sidebar."""
     if st.session_state.get("user_logged_in"):
         username = st.session_state.get("username", "User")
+        user_id = st.session_state.get("user_id")
+        user_email = st.session_state.get("user_email")
+        
         st.sidebar.success(f"✅ Logged in as: {username}")
+        if user_email:
+            st.sidebar.text(f"📧 {user_email}")
         
         # Show API key status
         if st.session_state.get("api_key_set"):
@@ -273,7 +322,53 @@ def show_user_info():
         else:
             st.sidebar.warning("⚠️ API Key: Not set")
         
+        # Show processing history if available
+        if DATABASE_AVAILABLE and user_id:
+            history = db_manager.get_processing_history(user_id, limit=3)
+            if history:
+                st.sidebar.markdown("---")
+                st.sidebar.subheader("📊 Recent Activity")
+                for item in history:
+                    st.sidebar.text(f"📄 {item['filename']}")
+                    st.sidebar.caption(f"🕒 {item['processing_date'].strftime('%Y-%m-%d %H:%M')}")
+        elif st.session_state.get("demo_mode"):
+            st.sidebar.info("🔧 Demo Mode - No persistent storage")
+        
         st.sidebar.markdown("---")
+        
+        # Quick export section in sidebar
+        if st.session_state.get("processing_complete") and st.session_state.get("edited_data"):
+            st.sidebar.subheader("📤 Quick Export")
+            
+            # DOCX export button in sidebar
+            if st.sidebar.button("📄 Export to DOCX", type="primary", key="sidebar_docx_export"):
+                docx_filename = f"resume_{st.session_state.current_filename.replace('.pdf', '')}.docx"
+                docx_content = generate_docx_file(st.session_state.edited_data, docx_filename)
+                
+                if docx_content:
+                    st.sidebar.success("✅ DOCX generated successfully!")
+                    # Create download link
+                    st.sidebar.download_button(
+                        label="📥 Download DOCX",
+                        data=docx_content,
+                        file_name=docx_filename,
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        key="sidebar_download_docx"
+                    )
+                else:
+                    st.sidebar.error("❌ Failed to generate DOCX")
+            
+            # JSON export button in sidebar
+            if st.sidebar.button("📄 Export to JSON", key="sidebar_json_export"):
+                export_data = st.session_state.edited_data
+                final_filename = f"resume_data_{st.session_state.current_filename.replace('.pdf', '')}.json"
+                st.sidebar.download_button(
+                    label="📥 Download JSON",
+                    data=json.dumps(export_data, indent=2),
+                    file_name=final_filename,
+                    mime="application/json",
+                    key="sidebar_download_json"
+                )
 
 
 def process_resume_3_steps(pdf_file, api_key: str, custom_prompt: str = None) -> Dict[str, Any]:
@@ -338,6 +433,43 @@ def process_resume_3_steps(pdf_file, api_key: str, custom_prompt: str = None) ->
         # Clean up temporary file
         if os.path.exists(temp_path):
             os.unlink(temp_path)
+
+
+def generate_docx_file(resume_data: Dict[str, Any], filename: str) -> bytes:
+    """
+    Generate a DOCX file from resume data and return as bytes.
+    
+    Args:
+        resume_data (Dict[str, Any]): The resume data to convert
+        filename (str): Base filename for the output
+        
+    Returns:
+        bytes: The DOCX file content as bytes
+    """
+    try:
+        # Create temporary file path
+        temp_docx_path = tempfile.mktemp(suffix='.docx')
+        
+        # Convert resume data to JSON string
+        resume_json = json.dumps(resume_data)
+        
+        # Generate DOCX using the ResumeDocumentGenerator
+        generator = ResumeDocumentGenerator(page_height=11)  # Standard letter size
+        generator.generate_docx(resume_json, temp_docx_path)
+        
+        # Read the generated file and return as bytes
+        with open(temp_docx_path, 'rb') as f:
+            docx_content = f.read()
+        
+        # Clean up temporary file
+        if os.path.exists(temp_docx_path):
+            os.unlink(temp_docx_path)
+        
+        return docx_content
+        
+    except Exception as e:
+        st.error(f"Error generating DOCX: {str(e)}")
+        return None
 
 
 def render_editing_interface():
@@ -461,7 +593,7 @@ def render_editing_interface():
     certifications = [cert.strip() for cert in certifications_input.split(",") if cert.strip()]
     
     # Save and Export buttons in the same row
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         if st.button("💾 Save Changes", type="primary", key="save_button"):
@@ -511,6 +643,24 @@ def render_editing_interface():
             key="download_formatted"
         )
     
+    with col4:
+        # Export DOCX file
+        docx_filename = f"resume_{st.session_state.current_filename.replace('.pdf', '')}.docx"
+        
+        # Generate DOCX content
+        docx_content = generate_docx_file(st.session_state.edited_data, docx_filename)
+        
+        if docx_content:
+            st.download_button(
+                label="📄 Download DOCX",
+                data=docx_content,
+                file_name=docx_filename,
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                key="download_docx"
+            )
+        else:
+            st.error("❌ Failed to generate DOCX")
+    
     # Display formatted resume
     st.subheader("📄 Formatted Resume Preview")
     st.text_area(
@@ -528,15 +678,17 @@ def main():
         layout="wide"
     )
     
-    # Initialize demo user if not exists
-    if 'users' not in st.session_state:
-        st.session_state.users = {}
-        # Create demo account
-        demo_password_hash = hash_password("demo123")
-        st.session_state.users['demo'] = {
-            'password_hash': demo_password_hash,
-            'created_at': time.time()
-        }
+    # Initialize database if available
+    if DATABASE_AVAILABLE:
+        try:
+            init_database()
+            create_demo_user()
+        except Exception as e:
+            st.warning(f"⚠️ Database initialization failed: {e}")
+            st.info("Running in demo mode without database persistence.")
+            st.session_state.demo_mode = True
+    else:
+        st.session_state.demo_mode = True
     
     # Authentication flow
     if not st.session_state.get("user_logged_in", False):
@@ -716,6 +868,17 @@ def main():
                         st.session_state.original_results = results.copy()
                         st.session_state.processing_complete = True
                         
+                        # Save processing history to database
+                        if DATABASE_AVAILABLE:
+                            user_id = st.session_state.get('user_id')
+                            if user_id:
+                                metadata = {
+                                    'target_role': 'Software Engineer',
+                                    'template_style': 'professional',
+                                    'steps_completed': 3
+                                }
+                                db_manager.save_processing_history(user_id, uploaded_file.name, metadata)
+                        
                         st.success("✅ Processing complete! You can now edit the data below.")
                         st.rerun()
                         
@@ -727,6 +890,10 @@ def main():
         if st.session_state.processing_complete and st.session_state.edited_data is not None:
             st.header("📝 Edit Resume Data")
             st.markdown("Review and edit the extracted resume information below.")
+            
+            # Show export options info
+            st.info("💡 **Export Options:** You can export your resume as JSON, TXT, or DOCX format. Use the buttons below or the Quick Export section in the sidebar.")
+            
             render_editing_interface()
 
 
