@@ -110,8 +110,29 @@ def render_editing_interface():
     st.subheader("💼 Work Experience")
     experiences = final_data.get("experience", [])
     
+    # Add new experience button
+    if st.button("➕ Add New Experience", key="add_experience"):
+        new_exp = {
+            "company": "",
+            "title": "",
+            "start_date": "",
+            "end_date": "",
+            "description": ""
+        }
+        experiences.append(new_exp)
+        st.session_state.edited_data["experience"] = experiences
+        st.success("✅ New experience added!")
+        st.rerun()
+    
     for i, exp in enumerate(experiences):
         with st.expander(f"Experience {i+1}: {exp.get('title', 'Unknown')} at {exp.get('company', 'Unknown')}"):
+            # Delete button for this experience
+            if st.button(f"🗑️ Delete Experience {i+1}", key=f"delete_exp_{i}", type="secondary"):
+                experiences.pop(i)
+                st.session_state.edited_data["experience"] = experiences
+                st.success(f"✅ Experience {i+1} deleted!")
+                st.rerun()
+            
             col1, col2 = st.columns(2)
             
             with col1:
@@ -128,8 +149,30 @@ def render_editing_interface():
     st.subheader("🎓 Education")
     educations = final_data.get("education", [])
     
+    # Add new education button
+    if st.button("➕ Add New Education", key="add_education"):
+        new_edu = {
+            "degree": "",
+            "institution": "",
+            "start_date": "",
+            "end_date": "",
+            "gpa": None,
+            "relevant_coursework": []
+        }
+        educations.append(new_edu)
+        st.session_state.edited_data["education"] = educations
+        st.success("✅ New education added!")
+        st.rerun()
+    
     for i, edu in enumerate(educations):
         with st.expander(f"Education {i+1}: {edu.get('degree', 'Unknown')} at {edu.get('institution', 'Unknown')}"):
+            # Delete button for this education
+            if st.button(f"🗑️ Delete Education {i+1}", key=f"delete_edu_{i}", type="secondary"):
+                educations.pop(i)
+                st.session_state.edited_data["education"] = educations
+                st.success(f"✅ Education {i+1} deleted!")
+                st.rerun()
+            
             col1, col2 = st.columns(2)
             
             with col1:
