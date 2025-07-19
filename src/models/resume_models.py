@@ -11,7 +11,7 @@ class Experience(BaseModel):
     title: str
     start_date: str
     end_date: Optional[str] = None
-    description: str
+    description: Optional[str] = None
     achievements: Optional[List[str]] = None
 
 
@@ -28,7 +28,7 @@ class Education(BaseModel):
 class ResumeData(BaseModel):
     """Complete resume data model."""
     name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     phone: Optional[str] = None
     location: Optional[str] = None
     linkedin: Optional[str] = None
@@ -45,6 +45,7 @@ class ResumeData(BaseModel):
 class ResumeProcessingRequest(BaseModel):
     """Request model for resume processing."""
     file_path: str
+    content: Optional[str] = None
     target_role: Optional[str] = None
     template_style: Optional[str] = "professional"
     enhance_content: bool = True

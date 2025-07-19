@@ -73,11 +73,30 @@ class ResumeFormatter:
             if json_match:
                 json_str = json_match.group()
                 data = json.loads(json_str)
-                return ResumeData(**data)
             else:
                 # If no JSON found, try parsing the entire response
                 data = json.loads(content)
-                return ResumeData(**data)
+            
+            # Clean up null values and provide defaults
+            if data.get('email') is None:
+                data['email'] = None  # This will be handled by Optional[EmailStr]
+            
+            if data.get('name') is None:
+                data['name'] = "Unknown"
+            
+            # Ensure lists are not None
+            if data.get('experience') is None:
+                data['experience'] = []
+            if data.get('education') is None:
+                data['education'] = []
+            if data.get('skills') is None:
+                data['skills'] = []
+            if data.get('certifications') is None:
+                data['certifications'] = []
+            if data.get('languages') is None:
+                data['languages'] = []
+            
+            return ResumeData(**data)
         except Exception as e:
             print(f"Error parsing Gemini response: {e}")
             print(f"Response content: {content if 'content' in locals() else 'No content'}")
@@ -125,7 +144,10 @@ class ResumeFormatter:
     def format(self, request: ResumeProcessingRequest) -> ResumeProcessingResponse:
         """Main formatting pipeline."""
         # Extract text from document
-        original_text = self._extract_text(request.file_path)
+        if request.content:
+            original_text = request.content
+        else:
+            original_text = self._extract_text(request.file_path)
         
         # Extract structured data
         extracted_data = self._extract_structured_data(original_text)
