@@ -18,11 +18,11 @@ from src.chains.resume_formatter import ResumeFormatter
 from src.models.resume_models import ResumeProcessingRequest
 
 
-def process_resume_3_steps(pdf_file, api_key: str) -> Dict[str, Any]:
+def process_resume_3_steps(pdf_file, api_key: str, custom_prompt: str = None) -> Dict[str, Any]:
     """Process resume through 3 steps and return results."""
     
     # Initialize chains
-    restructure_chain = ResumeRestructureChain(api_key=api_key)
+    restructure_chain = ResumeRestructureChain(api_key=api_key, custom_prompt=custom_prompt)
     formatter = ResumeFormatter(api_key=api_key)
     
     # Save uploaded file temporarily
@@ -97,12 +97,12 @@ def render_editing_interface():
         name = st.text_input("Full Name", value=final_data.get("name", ""), key="name_input")
         email = st.text_input("Email", value=final_data.get("email", ""), key="email_input")
         phone = st.text_input("Phone", value=final_data.get("phone", ""), key="phone_input")
+        reference_number = st.text_input("Reference Number", value=final_data.get("reference_number", ""), key="reference_number_input")
     
     with col2:
         location = st.text_input("Location", value=final_data.get("location", ""), key="location_input")
         linkedin = st.text_input("LinkedIn", value=final_data.get("linkedin", ""), key="linkedin_input")
-        website = st.text_input("Website", value=final_data.get("website", ""), key="website_input")
-    
+        website = st.text_input("Website", value=final_data.get("website", ""), key="website_input")    
     # Summary
     summary = st.text_area("Professional Summary", value=final_data.get("summary", ""), height=100, key="summary_input")
     
@@ -221,7 +221,8 @@ def render_editing_interface():
                 "skills": skills,
                 "languages": languages,
                 "certifications": certifications,
-                "projects": final_data.get("projects")
+                "projects": final_data.get("projects"),
+                "reference_number": reference_number
             }
             
             # Also update the results for export
@@ -284,11 +285,130 @@ def main():
     st.sidebar.success("✅ API Key loaded from environment")
     st.sidebar.info(f"Key: {api_key[:10]}...{api_key[-4:] if len(api_key) > 14 else '***'}")
     
+    # Prompt editing section in sidebar
+    st.sidebar.header("🔧 AI Prompt Settings")
+    
+    # Load default prompt
+    from src.prompts.resume_restructure_prompts import RESUME_RESTRUCTURE_PROMPT
+    default_prompt = RESUME_RESTRUCTURE_PROMPT.template
+    
+    # Show prompt status and quick actions
+    current_prompt = st.session_state.get('custom_prompt', default_prompt)
+    is_custom = 'custom_prompt' in st.session_state
+    
+    if is_custom:
+        st.sidebar.success("✅ Using custom prompt")
+    else:
+        st.sidebar.info("ℹ️ Using default prompt")
+    
+    # Show a preview of the current prompt
+    with st.sidebar.expander("👀 Preview Current Prompt", expanded=False):
+        # Handle None case
+        if current_prompt is None:
+            preview_text = "No prompt available"
+        else:
+            preview_text = current_prompt[:500] + "..." if len(current_prompt) > 500 else current_prompt
+        
+        st.text_area(
+            "Current Prompt",
+            value=preview_text,
+            height=150,
+            disabled=True,
+            key="prompt_preview"
+        )
+        if current_prompt and len(current_prompt) > 500:
+            st.caption("(Showing first 500 characters)")
+        
+        # Debug info
+        st.caption(f"Prompt length: {len(current_prompt) if current_prompt else 0} characters")
+        st.caption(f"Is custom: {is_custom}")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.sidebar.button("📝 Edit Prompt", key="edit_prompt_btn"):
+            st.session_state['show_prompt_editor'] = True
+    
+    with col2:
+        if st.sidebar.button("🔄 Reset", key="reset_prompt_btn"):
+            if 'custom_prompt' in st.session_state:
+                del st.session_state['custom_prompt']
+            if 'show_prompt_editor' in st.session_state:
+                del st.session_state['show_prompt_editor']
+            st.sidebar.success("✅ Reset to default!")
+            st.rerun()
+    
     # Initialize session state
     if 'processing_complete' not in st.session_state:
         st.session_state.processing_complete = False
     if 'current_filename' not in st.session_state:
         st.session_state.current_filename = ""
+    
+    # Show prompt editor if requested
+    if st.session_state.get('show_prompt_editor', False):
+        st.header("🔧 Customize AI Prompt")
+        st.markdown("**Edit the AI prompt that guides resume restructuring. This prompt controls how your resume will be formatted and structured.**")
+        
+        # Load default prompt
+        from src.prompts.resume_restructure_prompts import RESUME_RESTRUCTURE_PROMPT
+        default_prompt = RESUME_RESTRUCTURE_PROMPT.template
+        
+        # Use custom prompt if available, otherwise use default
+        current_prompt = st.session_state.get('custom_prompt', default_prompt)
+        
+        # Show current prompt status
+        if 'custom_prompt' in st.session_state:
+            st.info("📝 **Currently editing a custom prompt**")
+        else:
+            st.info("📝 **Currently editing the default prompt**")
+        
+        # Prompt editing interface
+        edited_prompt = st.text_area(
+            "AI Prompt Template",
+            value=current_prompt,
+            height=400,
+            help="Edit the prompt that guides the AI in restructuring resumes. Use {resume_data} and {reference_number} as placeholders.",
+            placeholder="Enter your custom prompt here..."
+        )
+        
+        # Placeholder information
+        with st.expander("💡 Available Placeholders", expanded=False):
+            st.markdown("""
+            **Use these placeholders in your prompt:**
+            
+            - `{resume_data}` - The structured resume data to process
+            - `{reference_number}` - The reference number for the resume
+            
+            **Example usage:**
+            ```
+            You are a professional resume restructuring expert. 
+            Transform the provided resume data: {resume_data}
+            Use reference number: {reference_number}
+            ```
+            """)
+        
+        # Action buttons
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("💾 Save Prompt", type="primary", key="save_prompt_main"):
+                st.session_state['custom_prompt'] = edited_prompt
+                st.success("✅ Custom prompt saved successfully!")
+                st.rerun()
+        
+        with col2:
+            if st.button("🔄 Reset to Default", key="reset_prompt_main"):
+                if 'custom_prompt' in st.session_state:
+                    del st.session_state['custom_prompt']
+                st.success("✅ Reset to default prompt!")
+                st.rerun()
+        
+        with col3:
+            if st.button("❌ Close Editor", key="close_prompt_editor"):
+                del st.session_state['show_prompt_editor']
+                st.rerun()
+        
+        st.divider()
     
     # File upload
     st.header("📁 Upload Resume")
@@ -315,7 +435,10 @@ def main():
             if st.button("🚀 Process Resume (3 Steps)", type="primary", key="process_button"):
                 with st.spinner("Processing resume through 3-step pipeline..."):
                     try:
-                        results = process_resume_3_steps(uploaded_file, api_key)
+                        # Get custom prompt if available
+                        custom_prompt = st.session_state.get('custom_prompt', None)
+                        
+                        results = process_resume_3_steps(uploaded_file, api_key, custom_prompt)
                         
                         # Store results in session state
                         st.session_state.edited_data = results["step3_final_data"].copy()

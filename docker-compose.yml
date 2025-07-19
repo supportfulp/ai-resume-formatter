@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  resume-processor:
+    build: .
+    container_name: resume-processor-app
+    ports:
+      - "8501:8501"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - PYTHONPATH=/app
+    volumes:
+      # Mount source code for development (comment out for production)
+      - ./src:/app/src
+      - ./streamlit_app.py:/app/streamlit_app.py
+      - ./requirements.txt:/app/requirements.txt
+      # Mount output directory for persistent storage
+      - ./output:/app/output
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - resume-network
+
+  # Optional: Add a reverse proxy with nginx for production
+  nginx:
+    image: nginx:alpine
+    container_name: resume-processor-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - resume-processor
+    restart: unless-stopped
+    networks:
+      - resume-network
+    profiles:
+      - production
+
+networks:
+  resume-network:
+    driver: bridge
+
+volumes:
+  output-data: 

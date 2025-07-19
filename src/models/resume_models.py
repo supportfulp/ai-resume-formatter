@@ -34,6 +34,7 @@ class ResumeData(BaseModel):
     linkedin: Optional[str] = None
     website: Optional[str] = None
     summary: Optional[str] = None
+    reference_number: Optional[str] = None
     experience: List[Experience] = []
     education: List[Education] = []
     skills: List[str] = []

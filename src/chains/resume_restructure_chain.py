@@ -11,20 +11,30 @@ from ..prompts.resume_restructure_prompts import RESUME_RESTRUCTURE_PROMPT
 from ..adapters.pdf_adapter import PDFAdapter
 from ..adapters.docx_adapter import DOCXAdapter
 from ..utils.text_processor import TextProcessor
+from langchain.prompts import PromptTemplate
 
 
 class ResumeRestructureChain:
     """Chain for restructuring resumes according to predefined template."""
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, custom_prompt: Optional[str] = None):
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash-exp",
             temperature=0.1,
             google_api_key=api_key
         )
         
+        # Use custom prompt if provided, otherwise use default
+        if custom_prompt:
+            self.prompt_template = PromptTemplate(
+                input_variables=["resume_data", "reference_number"],
+                template=custom_prompt
+            )
+        else:
+            self.prompt_template = RESUME_RESTRUCTURE_PROMPT
+        
         # Initialize the restructuring chain
-        self.restructure_chain = RESUME_RESTRUCTURE_PROMPT | self.llm
+        self.restructure_chain = self.prompt_template | self.llm
         
         # Initialize adapters
         self.pdf_adapter = PDFAdapter()
