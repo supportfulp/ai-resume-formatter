@@ -19,7 +19,7 @@ class ResumeRestructureChain:
     
     def __init__(self, api_key: Optional[str] = None, custom_prompt: Optional[str] = None):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
+            model="gemini-2.5-flash",
             temperature=0.1,
             google_api_key=api_key
         )
@@ -202,6 +202,10 @@ class ResumeRestructureChain:
                 "resume_data": json.dumps(data_dict, indent=2),
                 "reference_number": reference_number
             })
+            
+            # Store usage metadata for later access
+            self.last_usage_metadata = getattr(result, 'usage_metadata', {})
+            print(f"Restructure usage metadata: {self.last_usage_metadata}")
             
             # Extract the formatted content
             formatted_resume = result.content if hasattr(result, 'content') else str(result)

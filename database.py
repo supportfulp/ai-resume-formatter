@@ -115,6 +115,23 @@ class DatabaseManager:
                     )
                 """)
                 
+                # Create token_usage table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS token_usage (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        processing_history_id INTEGER REFERENCES processing_history(id) ON DELETE CASCADE,
+                        input_tokens INTEGER NOT NULL DEFAULT 0,
+                        output_tokens INTEGER NOT NULL DEFAULT 0,
+                        total_tokens INTEGER NOT NULL DEFAULT 0,
+                        input_cost_usd DECIMAL(10, 6) NOT NULL DEFAULT 0,
+                        output_cost_usd DECIMAL(10, 6) NOT NULL DEFAULT 0,
+                        total_cost_usd DECIMAL(10, 6) NOT NULL DEFAULT 0,
+                        model VARCHAR(50) NOT NULL DEFAULT 'gemini-2.5-flash',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
                 conn.commit()
                 logger.info("Database tables initialized successfully")
     
@@ -424,6 +441,102 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error deleting custom prompt: {e}")
             return False
+    
+    def save_token_usage(self, user_id: int, processing_history_id: int, token_data: Dict[str, Any]) -> bool:
+        """Save token usage data for a user."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO token_usage (
+                            user_id, processing_history_id, input_tokens, output_tokens, 
+                            total_tokens, input_cost_usd, output_cost_usd, total_cost_usd, model
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        user_id,
+                        processing_history_id,
+                        token_data.get('input_tokens', 0),
+                        token_data.get('output_tokens', 0),
+                        token_data.get('total_tokens', 0),
+                        token_data.get('input_cost_usd', 0),
+                        token_data.get('output_cost_usd', 0),
+                        token_data.get('total_cost_usd', 0),
+                        token_data.get('model', 'gemini-2.5-flash')
+                    ))
+                    conn.commit()
+                    logger.info(f"Token usage saved for user {user_id}")
+                    return True
+        except Exception as e:
+            logger.error(f"Error saving token usage: {e}")
+            return False
+    
+    def get_user_token_usage(self, user_id: int, days: int = 30) -> list:
+        """Get token usage for a user over the specified number of days."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    cursor.execute("""
+                        SELECT 
+                            tu.*,
+                            ph.filename,
+                            ph.processing_date
+                        FROM token_usage tu
+                        JOIN processing_history ph ON tu.processing_history_id = ph.id
+                        WHERE tu.user_id = %s 
+                        AND tu.created_at >= CURRENT_DATE - INTERVAL '%s days'
+                        ORDER BY tu.created_at DESC
+                    """, (user_id, days))
+                    return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Error getting user token usage: {e}")
+            return []
+    
+    def get_user_token_summary(self, user_id: int, days: int = 30) -> Dict[str, Any]:
+        """Get token usage summary for a user over the specified number of days."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    cursor.execute("""
+                        SELECT 
+                            COUNT(*) as total_requests,
+                            SUM(input_tokens) as total_input_tokens,
+                            SUM(output_tokens) as total_output_tokens,
+                            SUM(total_tokens) as total_tokens,
+                            SUM(input_cost_usd) as total_input_cost,
+                            SUM(output_cost_usd) as total_output_cost,
+                            SUM(total_cost_usd) as total_cost,
+                            AVG(total_tokens) as avg_tokens_per_request,
+                            AVG(total_cost_usd) as avg_cost_per_request
+                        FROM token_usage
+                        WHERE user_id = %s 
+                        AND created_at >= CURRENT_DATE - INTERVAL '%s days'
+                    """, (user_id, days))
+                    result = cursor.fetchone()
+                    return dict(result) if result else {
+                        'total_requests': 0,
+                        'total_input_tokens': 0,
+                        'total_output_tokens': 0,
+                        'total_tokens': 0,
+                        'total_input_cost': 0,
+                        'total_output_cost': 0,
+                        'total_cost': 0,
+                        'avg_tokens_per_request': 0,
+                        'avg_cost_per_request': 0
+                    }
+        except Exception as e:
+            logger.error(f"Error getting user token summary: {e}")
+            return {
+                'total_requests': 0,
+                'total_input_tokens': 0,
+                'total_output_tokens': 0,
+                'total_tokens': 0,
+                'total_input_cost': 0,
+                'total_output_cost': 0,
+                'total_cost': 0,
+                'avg_tokens_per_request': 0,
+                'avg_cost_per_request': 0
+            }
     
     def cleanup_expired_sessions(self):
         """Clean up expired sessions."""

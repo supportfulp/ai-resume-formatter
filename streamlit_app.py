@@ -474,7 +474,14 @@ def show_user_info():
 
 
 def process_resume_3_steps(pdf_file, api_key: str, custom_prompt: str = None) -> Dict[str, Any]:
-    """Process resume through 3 steps and return results."""
+    """Process resume through 3 steps and return results with token tracking."""
+    
+    # Initialize token tracking
+    total_tokens = {
+        'input_tokens': 0,
+        'output_tokens': 0,
+        'total_tokens': 0
+    }
     
     # Initialize chains
     restructure_chain = ResumeRestructureChain(api_key=api_key, custom_prompt=custom_prompt)
@@ -498,11 +505,27 @@ def process_resume_3_steps(pdf_file, api_key: str, custom_prompt: str = None) ->
         step1_result = formatter.format(request)
         extracted_data = step1_result.extracted_data
         
+        # Track tokens from Step 1 (extract_chain)
+        if hasattr(step1_result, 'processing_metadata') and step1_result.processing_metadata:
+            usage = step1_result.processing_metadata.get('usage_metadata', {})
+            print(f"Step 1 usage: {usage}")
+            total_tokens['input_tokens'] += usage.get('input_tokens', 0)
+            total_tokens['output_tokens'] += usage.get('output_tokens', 0)
+            total_tokens['total_tokens'] += usage.get('total_tokens', 0)
+        
         # Step 2: First restructuring
         restructured_from_data = restructure_chain.restructure_from_data(
             extracted_data, 
             reference_number="SDA02-AMH"
         )
+        
+        # Track tokens from Step 2 (restructure_chain)
+        if hasattr(restructure_chain, 'last_usage_metadata') and restructure_chain.last_usage_metadata:
+            usage = restructure_chain.last_usage_metadata
+            print(f"Step 2 usage: {usage}")
+            total_tokens['input_tokens'] += usage.get('input_tokens', 0)
+            total_tokens['output_tokens'] += usage.get('output_tokens', 0)
+            total_tokens['total_tokens'] += usage.get('total_tokens', 0)
         
         # Step 3: Second restructuring - process Step 2 output through formatter again
         step3_request = ResumeProcessingRequest(
@@ -516,6 +539,22 @@ def process_resume_3_steps(pdf_file, api_key: str, custom_prompt: str = None) ->
         
         step3_result = formatter.format(step3_request)
         
+        # Track tokens from Step 3 (extract_chain again)
+        if hasattr(step3_result, 'processing_metadata') and step3_result.processing_metadata:
+            usage = step3_result.processing_metadata.get('usage_metadata', {})
+            print(f"Step 3 usage: {usage}")
+            total_tokens['input_tokens'] += usage.get('input_tokens', 0)
+            total_tokens['output_tokens'] += usage.get('output_tokens', 0)
+            total_tokens['total_tokens'] += usage.get('total_tokens', 0)
+        
+        print(f"Total tokens tracked: {total_tokens}")
+        
+        # Calculate cost (Gemini 2.5 Flash pricing as of 2024)
+        # Input: $0.000125 per 1K tokens, Output: $0.000375 per 1K tokens
+        input_cost = (total_tokens['input_tokens'] / 1000) * 0.000125
+        output_cost = (total_tokens['output_tokens'] / 1000) * 0.000375
+        total_cost = input_cost + output_cost
+        
         # Prepare results
         results = {
             "step1_extracted_data": step1_result.extracted_data.model_dump(),
@@ -526,6 +565,15 @@ def process_resume_3_steps(pdf_file, api_key: str, custom_prompt: str = None) ->
                 "original_filename": pdf_file.name,
                 "target_role": "Software Engineer",
                 "template_style": "professional"
+            },
+            "token_usage": {
+                "total_tokens": total_tokens,
+                "cost_estimation": {
+                    "input_cost_usd": round(input_cost, 6),
+                    "output_cost_usd": round(output_cost, 6),
+                    "total_cost_usd": round(total_cost, 6),
+                    "model": "gemini-2.5-flash"
+                }
             }
         }
         
@@ -1067,6 +1115,19 @@ def show_resume_processing_tab():
                                     history_id = db_manager.save_processing_history(user_id, uploaded_file.name, metadata)
                                     if history_id:
                                         db_manager.save_processing_result(history_id, results["step3_final_data"])
+                                        
+                                        # Save token usage data
+                                        if 'token_usage' in results:
+                                            token_data = {
+                                                'input_tokens': results['token_usage']['total_tokens']['input_tokens'],
+                                                'output_tokens': results['token_usage']['total_tokens']['output_tokens'],
+                                                'total_tokens': results['token_usage']['total_tokens']['total_tokens'],
+                                                'input_cost_usd': results['token_usage']['cost_estimation']['input_cost_usd'],
+                                                'output_cost_usd': results['token_usage']['cost_estimation']['output_cost_usd'],
+                                                'total_cost_usd': results['token_usage']['cost_estimation']['total_cost_usd'],
+                                                'model': results['token_usage']['cost_estimation']['model']
+                                            }
+                                            db_manager.save_token_usage(user_id, history_id, token_data)
                             
                             st.success("✅ Processing complete! You can now edit the data below.")
                             st.rerun()
@@ -1077,9 +1138,237 @@ def show_resume_processing_tab():
             
             # Show editing interface if processing is complete
             if st.session_state.processing_complete and st.session_state.edited_data is not None:
+                # Display token usage and cost information
+                if 'original_results' in st.session_state and st.session_state.original_results:
+                    token_usage = st.session_state.original_results.get('token_usage', {})
+                    if token_usage:
+                        with shadcn_card(
+                            title="💰 Token Usage & Cost",
+                            key="token_usage_card"
+                        ):
+                            col1, col2, col3, col4 = st.columns(4)
+                            
+                            with col1:
+                                st.metric(
+                                    "Input Tokens",
+                                    f"{token_usage.get('total_tokens', {}).get('input_tokens', 0):,}"
+                                )
+                            
+                            with col2:
+                                st.metric(
+                                    "Output Tokens",
+                                    f"{token_usage.get('total_tokens', {}).get('output_tokens', 0):,}"
+                                )
+                            
+                            with col3:
+                                st.metric(
+                                    "Total Tokens",
+                                    f"{token_usage.get('total_tokens', {}).get('total_tokens', 0):,}"
+                                )
+                            
+                            with col4:
+                                cost_info = token_usage.get('cost_estimation', {})
+                                st.metric(
+                                    "Estimated Cost",
+                                    f"${cost_info.get('total_cost_usd', 0):.6f}"
+                                )
+                            
+                            # Show detailed cost breakdown
+                            with st.expander("📊 Detailed Cost Breakdown", expanded=False):
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    st.caption("**Input Cost:**")
+                                    st.write(f"${cost_info.get('input_cost_usd', 0):.6f}")
+                                    st.caption("**Output Cost:**")
+                                    st.write(f"${cost_info.get('output_cost_usd', 0):.6f}")
+                                
+                                with col2:
+                                    st.caption("**Model Used:**")
+                                    st.write(cost_info.get('model', 'Unknown'))
+                                    st.caption("**Pricing:**")
+                                    st.write("Input: $0.000125/1K tokens")
+                                    st.write("Output: $0.000375/1K tokens")
+                
                 st.info("💡 **Export Options:** You can export your resume as JSON, TXT, or DOCX format. Use the buttons below or the Quick Export section in the sidebar.")
                 
                 render_editing_interface()
+
+
+def show_consumption_dashboard_tab():
+    """Show consumption dashboard tab."""
+    st.header("💰 Consumption Dashboard")
+    
+    if not DATABASE_AVAILABLE:
+        st.warning("⚠️ Database not available. Consumption dashboard is not available in demo mode.")
+        return
+    
+    if not st.session_state.get('user_id'):
+        st.warning("⚠️ User not logged in.")
+        return
+    
+    # Time period selector
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        days = st.selectbox(
+            "Time Period",
+            options=[7, 30, 90, 365],
+            index=1,
+            format_func=lambda x: f"{x} days"
+        )
+    
+    with col2:
+        if st.button("🔄 Refresh Data", key="refresh_consumption"):
+            st.rerun()
+    
+    # Get user's token usage data
+    user_id = st.session_state.get('user_id')
+    usage_data = db_manager.get_user_token_usage(user_id, days)
+    summary_data = db_manager.get_user_token_summary(user_id, days)
+    
+    if not usage_data:
+        st.info("📊 No token usage data found for your account.")
+        return
+    
+    # Summary metrics
+    with shadcn_card(
+        title="📊 Usage Summary",
+        key="usage_summary_card"
+    ):
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric(
+                "Total Requests",
+                f"{summary_data.get('total_requests', 0):,}"
+            )
+        
+        with col2:
+            st.metric(
+                "Total Tokens",
+                f"{summary_data.get('total_tokens', 0):,}"
+            )
+        
+        with col3:
+            st.metric(
+                "Total Cost",
+                f"${summary_data.get('total_cost', 0):.6f}"
+            )
+        
+        with col4:
+            avg_cost = summary_data.get('avg_cost_per_request', 0)
+            st.metric(
+                "Avg Cost/Request",
+                f"${avg_cost:.6f}"
+            )
+    
+    # Detailed breakdown
+    with shadcn_card(
+        title="📈 Detailed Breakdown",
+        key="detailed_breakdown_card"
+    ):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.caption("**Token Distribution**")
+            st.metric("Input Tokens", f"{summary_data.get('total_input_tokens', 0):,}")
+            st.metric("Output Tokens", f"{summary_data.get('total_output_tokens', 0):,}")
+        
+        with col2:
+            st.caption("**Cost Breakdown**")
+            st.metric("Input Cost", f"${summary_data.get('total_input_cost', 0):.6f}")
+            st.metric("Output Cost", f"${summary_data.get('total_output_cost', 0):.6f}")
+    
+    # Charts section
+    with shadcn_card(
+        title="📊 Usage Trends",
+        key="usage_trends_card"
+    ):
+        # Prepare data for charts
+        import pandas as pd
+        from datetime import datetime
+        
+        # Convert usage data to DataFrame
+        df = pd.DataFrame(usage_data)
+        
+        if not df.empty:
+            # Convert created_at to datetime if it's not already
+            df['created_at'] = pd.to_datetime(df['created_at'])
+            
+            # Group by date and aggregate
+            df['date'] = df['created_at'].dt.date
+            daily_tokens = df.groupby('date')['total_tokens'].sum().reset_index()
+            daily_requests = df.groupby('date').size().reset_index(name='request_count')
+            
+            # Convert date back to datetime for plotting
+            daily_tokens['date'] = pd.to_datetime(daily_tokens['date'])
+            daily_requests['date'] = pd.to_datetime(daily_requests['date'])
+            
+            # Set date as index for plotting
+            daily_tokens.set_index('date', inplace=True)
+            daily_requests.set_index('date', inplace=True)
+            
+            # Token Count per Day chart
+            st.subheader("🔢 Token Count per Day")
+            if not daily_tokens.empty:
+                st.line_chart(daily_tokens, y="total_tokens")
+            else:
+                st.info("No token data available for the selected period.")
+            
+            # Request Count per Day chart
+            st.subheader("📋 Request Count per Day")
+            if not daily_requests.empty:
+                st.line_chart(daily_requests, y="request_count")
+            else:
+                st.info("No request data available for the selected period.")
+        else:
+            st.info("No data available for the selected period.")
+    
+    # Recent usage table
+    with shadcn_card(
+        title="📋 Recent Usage",
+        key="recent_usage_card"
+    ):
+        if usage_data:
+            # Create a simple table of recent usage
+            for i, usage in enumerate(usage_data[:10]):  # Show last 10 entries
+                with st.expander(f"📄 {usage['filename']} - {usage['created_at'].strftime('%Y-%m-%d %H:%M')}", expanded=False):
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.caption("**Tokens**")
+                        st.write(f"Input: {usage['input_tokens']:,}")
+                        st.write(f"Output: {usage['output_tokens']:,}")
+                        st.write(f"Total: {usage['total_tokens']:,}")
+                    
+                    with col2:
+                        st.caption("**Cost**")
+                        st.write(f"Input: ${usage['input_cost_usd']:.6f}")
+                        st.write(f"Output: ${usage['output_cost_usd']:.6f}")
+                        st.write(f"Total: ${usage['total_cost_usd']:.6f}")
+                    
+                    with col3:
+                        st.caption("**Model**")
+                        st.write(usage['model'])
+                        st.caption(f"Processed: {usage['processing_date'].strftime('%Y-%m-%d %H:%M')}")
+        else:
+            st.info("No recent usage data available.")
+    
+    # Pricing information
+    with shadcn_card(
+        title="💡 Pricing Information",
+        key="pricing_info_card"
+    ):
+        st.markdown("""
+        **Gemini 2.5 Flash Pricing (as of 2024):**
+        
+        - **Input Tokens:** $0.000125 per 1K tokens
+        - **Output Tokens:** $0.000375 per 1K tokens
+        
+        **Cost Calculation:**
+        - Input Cost = (Input Tokens ÷ 1000) × $0.000125
+        - Output Cost = (Output Tokens ÷ 1000) × $0.000375
+        - Total Cost = Input Cost + Output Cost
+        """)
 
 
 def main():
@@ -1140,7 +1429,7 @@ def main():
             # Vertical tabs in left column
             selected_tab = st.radio(
                 "Navigation",
-                options=["📁 Resume Processing", "🔧 Prompt Management", "📊 Processing History"],
+                options=["📁 Resume Processing", "🔧 Prompt Management", "📊 Processing History", "💰 Consumption Dashboard"],
                 label_visibility="collapsed",
                 key="vertical_tabs"
             )
@@ -1153,6 +1442,8 @@ def main():
                 show_prompt_management_tab()
             elif selected_tab == "📊 Processing History":
                 show_processing_history_tab()
+            elif selected_tab == "💰 Consumption Dashboard":
+                show_consumption_dashboard_tab()
         logout_button()
 
 

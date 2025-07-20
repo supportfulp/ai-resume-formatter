@@ -23,10 +23,10 @@ class ResumeFormatter:
     
     def __init__(self, api_key: Optional[str] = None):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
+            model="gemini-2.5-flash",
             temperature=0.1,
             google_api_key=api_key
-        )
+        )   
         
         # Initialize chains using new RunnableSequence API
         self.extract_chain = EXTRACT_INFO_PROMPT | self.llm
@@ -63,6 +63,10 @@ class ResumeFormatter:
         try:
             result = self.extract_chain.invoke({"resume_text": text})
             print(f"Raw Gemini output: {result}")
+            
+            # Store usage metadata for later access
+            self.last_usage_metadata = getattr(result, 'usage_metadata', {})
+            print(f"Extract usage metadata: {self.last_usage_metadata}")
             
             # Clean the response - remove markdown formatting if present
             content = result.content if hasattr(result, 'content') else str(result)
@@ -112,6 +116,11 @@ class ResumeFormatter:
                 "resume_text": text,
                 "target_role": target_role
             })
+            
+            # Store usage metadata
+            self.last_enhance_usage = getattr(result, 'usage_metadata', {})
+            print(f"Enhance usage metadata: {self.last_enhance_usage}")
+            
             return result.content if hasattr(result, 'content') else str(result)
         except Exception as e:
             print(f"Warning: Content enhancement failed: {e}")
@@ -124,6 +133,11 @@ class ResumeFormatter:
                 "resume_data": data.model_dump_json(),
                 "template_style": template_style
             })
+            
+            # Store usage metadata
+            self.last_format_usage = getattr(result, 'usage_metadata', {})
+            print(f"Format usage metadata: {self.last_format_usage}")
+            
             return result.content if hasattr(result, 'content') else str(result)
         except Exception as e:
             raise ValueError(f"Failed to format resume: {e}")
@@ -136,6 +150,11 @@ class ResumeFormatter:
                 "target_role": text,
                 "job_description": job_description
             })
+            
+            # Store usage metadata
+            self.last_ats_usage = getattr(result, 'usage_metadata', {})
+            print(f"ATS usage metadata: {self.last_ats_usage}")
+            
             return result.content if hasattr(result, 'content') else str(result)
         except Exception as e:
             print(f"Warning: ATS optimization failed: {e}")
@@ -143,6 +162,13 @@ class ResumeFormatter:
     
     def format(self, request: ResumeProcessingRequest) -> ResumeProcessingResponse:
         """Main formatting pipeline."""
+        # Initialize usage tracking
+        total_usage = {
+            'input_tokens': 0,
+            'output_tokens': 0,
+            'total_tokens': 0
+        }
+        
         # Extract text from document
         if request.content:
             original_text = request.content
@@ -152,6 +178,13 @@ class ResumeFormatter:
         # Extract structured data
         extracted_data = self._extract_structured_data(original_text)
         
+        # Add usage from extraction
+        if hasattr(self, 'last_usage_metadata') and self.last_usage_metadata:
+            total_usage['input_tokens'] += self.last_usage_metadata.get('input_tokens', 0)
+            total_usage['output_tokens'] += self.last_usage_metadata.get('output_tokens', 0)
+            total_usage['total_tokens'] += self.last_usage_metadata.get('total_tokens', 0)
+            print(f"Added extraction usage: {self.last_usage_metadata}")
+        
         # Enhance content if requested
         enhanced_text = None
         if request.enhance_content:
@@ -159,6 +192,12 @@ class ResumeFormatter:
                 original_text, 
                 request.target_role
             )
+            # Add usage from enhancement
+            if hasattr(self, 'last_enhance_usage') and self.last_enhance_usage:
+                total_usage['input_tokens'] += self.last_enhance_usage.get('input_tokens', 0)
+                total_usage['output_tokens'] += self.last_enhance_usage.get('output_tokens', 0)
+                total_usage['total_tokens'] += self.last_enhance_usage.get('total_tokens', 0)
+                print(f"Added enhancement usage: {self.last_enhance_usage}")
         
         # Format resume
         formatted_resume = self._format_resume(
@@ -166,12 +205,27 @@ class ResumeFormatter:
             request.template_style
         )
         
+        # Add usage from formatting
+        if hasattr(self, 'last_format_usage') and self.last_format_usage:
+            total_usage['input_tokens'] += self.last_format_usage.get('input_tokens', 0)
+            total_usage['output_tokens'] += self.last_format_usage.get('output_tokens', 0)
+            total_usage['total_tokens'] += self.last_format_usage.get('total_tokens', 0)
+            print(f"Added format usage: {self.last_format_usage}")
+        
         # ATS optimization if requested
         if request.ats_optimize and request.job_description:
             formatted_resume = self._optimize_for_ats(
                 formatted_resume,
                 request.job_description
             )
+            # Add usage from ATS optimization
+            if hasattr(self, 'last_ats_usage') and self.last_ats_usage:
+                total_usage['input_tokens'] += self.last_ats_usage.get('input_tokens', 0)
+                total_usage['output_tokens'] += self.last_ats_usage.get('output_tokens', 0)
+                total_usage['total_tokens'] += self.last_ats_usage.get('total_tokens', 0)
+                print(f"Added ATS usage: {self.last_ats_usage}")
+        
+        print(f"Total usage accumulated: {total_usage}")
         
         # Prepare metadata
         processing_metadata = {
@@ -179,7 +233,8 @@ class ResumeFormatter:
             "target_role": request.target_role,
             "template_style": request.template_style,
             "enhance_content": request.enhance_content,
-            "ats_optimize": request.ats_optimize
+            "ats_optimize": request.ats_optimize,
+            "usage_metadata": total_usage
         }
         
         return ResumeProcessingResponse(
