@@ -95,6 +95,17 @@ class DatabaseManager:
                 conn.commit()
                 logger.info("Database tables initialized successfully")
     
+    def user_exists(self, username: str) -> bool:
+        """Check if a user exists by username."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+                    return cursor.fetchone() is not None
+        except Exception as e:
+            logger.error(f"Error checking if user {username} exists: {e}")
+            return False
+
     def create_user(self, username: str, password: str, email: str = None) -> bool:
         """Create a new user account."""
         try:
@@ -316,9 +327,16 @@ def init_database():
 def create_demo_user():
     """Create demo user if it doesn't exist."""
     try:
-        if not db_manager.verify_user("demo", "demo123"):
-            db_manager.create_user("demo", "demo123", "demo@example.com")
+        # Check if demo user already exists
+        if db_manager.user_exists("demo"):
+            logger.info("Demo user already exists, skipping creation")
+            return
+        
+        # If demo user doesn't exist, create it
+        if db_manager.create_user("demo", "demo123", "demo@example.com"):
             logger.info("Demo user created successfully")
+        else:
+            logger.info("Demo user creation failed")
     except Exception as e:
         logger.error(f"Error creating demo user: {e}")
 

@@ -19,17 +19,26 @@ railway login
 railway init
 ```
 
-### 4. Set Environment Variables
+### 4. Add PostgreSQL Database
+```bash
+# Add PostgreSQL service
+railway add
+
+# Select "PostgreSQL" from the list
+# This will automatically set up all database environment variables
+```
+
+### 5. Set Environment Variables
 ```bash
 railway variables set GOOGLE_API_KEY=your_google_api_key_here
 ```
 
-### 5. Deploy
+### 6. Deploy
 ```bash
 railway up
 ```
 
-### 6. Get Your Public URL
+### 7. Get Your Public URL
 ```bash
 railway domain
 ```
@@ -37,6 +46,40 @@ railway domain
 ## 🎉 Done! 
 
 Your app will be available at: `https://your-app-name.railway.app`
+
+## 🗄️ Database Setup (Important!)
+
+### Option A: Railway PostgreSQL (Recommended)
+```bash
+# Add PostgreSQL service
+railway add
+
+# Select "PostgreSQL" 
+# Railway will automatically set these environment variables:
+# - POSTGRES_HOST
+# - POSTGRES_PORT  
+# - POSTGRES_DB
+# - POSTGRES_USER
+# - POSTGRES_PASSWORD
+```
+
+### Option B: External Database
+If using external PostgreSQL (like Supabase, Neon, etc.):
+```bash
+# Set database environment variables manually
+railway variables set POSTGRES_HOST=your-db-host.com
+railway variables set POSTGRES_PORT=5432
+railway variables set POSTGRES_DB=your_database_name
+railway variables set POSTGRES_USER=your_username
+railway variables set POSTGRES_PASSWORD=your_password
+```
+
+### Option C: Demo Mode (No Database)
+If you don't want to set up a database:
+```bash
+# The app will run in demo mode automatically
+# No database environment variables needed
+```
 
 ## 📋 What Railway Does Automatically:
 
@@ -46,6 +89,7 @@ Your app will be available at: `https://your-app-name.railway.app`
 - ✅ **Scales** automatically
 - ✅ **Monitors** your app health
 - ✅ **Gives** you a public URL
+- ✅ **Sets up** PostgreSQL environment variables (if you add PostgreSQL service)
 
 ## 🔧 Customization (Optional)
 
@@ -80,6 +124,19 @@ railway up
 
 ## 🆘 Troubleshooting
 
+### Database Connection Issues
+```bash
+# Check if PostgreSQL service is added
+railway service
+
+# Check database environment variables
+railway variables | grep POSTGRES
+
+# If no PostgreSQL variables, add the service:
+railway add
+# Select "PostgreSQL" from the list
+```
+
 ### Build Fails
 ```bash
 # Check logs
@@ -93,6 +150,9 @@ railway up --force
 ```bash
 # Check environment variables
 railway variables
+
+# Check logs for database errors
+railway logs
 
 # Restart app
 railway service restart
@@ -198,3 +258,54 @@ services:
 ---
 
 **Your resume processor will be live in minutes! 🎉** 
+
+## 🔍 **Step 1: Get Database Connection Details**
+
+Go to your Railway dashboard and find your PostgreSQL database. You should see connection details like:
+
+- **Host**: `postgres-db.up.railway.app`
+- **Port**: Usually `5432`
+- **Database name**: Something like `railway` or custom name
+- **Username**: Usually `postgres`
+- **Password**: Generated password
+
+## 🔧 **Step 2: Set Environment Variables**
+
+You can set these in Railway dashboard or use the CLI. Let me help you with both methods:
+
+### **Method A: Railway Dashboard (Easiest)**
+1. Go to your Railway project dashboard
+2. Click on your **web app service** (not the database)
+3. Go to **Variables** tab
+4. Add these environment variables:
+
+```
+<code_block_to_apply_changes_from>
+```
+
+### **Method B: Railway CLI (If you get it working)**
+```bash
+# Try this to see if npx works
+npx @railway/cli login
+
+# Then set variables
+npx @railway/cli variables set POSTGRES_HOST=postgres-db.up.railway.app
+npx @railway/cli variables set POSTGRES_PORT=5432
+npx @railway/cli variables set POSTGRES_DB=railway
+npx @railway/cli variables set POSTGRES_USER=postgres
+npx @railway/cli variables set POSTGRES_PASSWORD=your_password
+npx @railway/cli variables set GOOGLE_API_KEY=your_google_api_key
+```
+
+## 🎯 **Step 3: Test Connection**
+
+Let me create a simple test script to verify your database connection:
+
+```bash
+POSTGRES_HOST=postgres-db.up.railway.app
+POSTGRES_PORT=5432
+POSTGRES_DB=railway
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_generated_password
+GOOGLE_API_KEY=your_google_api_key
+``` 
