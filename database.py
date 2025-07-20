@@ -92,6 +92,29 @@ class DatabaseManager:
                     )
                 """)
                 
+                # Create processing_results table to store actual results
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS processing_results (
+                        id SERIAL PRIMARY KEY,
+                        history_id INTEGER REFERENCES processing_history(id) ON DELETE CASCADE,
+                        result_data JSONB NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Create custom_prompts table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS custom_prompts (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        name VARCHAR(100) NOT NULL,
+                        prompt_text TEXT NOT NULL,
+                        is_default BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
                 conn.commit()
                 logger.info("Database tables initialized successfully")
     
@@ -264,21 +287,23 @@ class DatabaseManager:
             logger.error(f"Error deleting session: {e}")
             return False
     
-    def save_processing_history(self, user_id: int, filename: str, metadata: Dict = None) -> bool:
-        """Save processing history for a user."""
+    def save_processing_history(self, user_id: int, filename: str, metadata: Dict = None) -> Optional[int]:
+        """Save processing history for a user and return the history ID."""
         try:
             with self.get_connection() as conn:
                 with conn.cursor() as cursor:
                     cursor.execute("""
                         INSERT INTO processing_history (user_id, filename, metadata)
                         VALUES (%s, %s, %s)
+                        RETURNING id
                     """, (user_id, filename, psycopg2.extras.Json(metadata) if metadata else None))
+                    history_id = cursor.fetchone()[0]
                     conn.commit()
-                    logger.info(f"Processing history saved for user {user_id}")
-                    return True
+                    logger.info(f"Processing history saved for user {user_id} with ID {history_id}")
+                    return history_id
         except Exception as e:
             logger.error(f"Error saving processing history: {e}")
-            return False
+            return None
     
     def get_processing_history(self, user_id: int, limit: int = 10) -> list:
         """Get processing history for a user."""
@@ -286,16 +311,119 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
                     cursor.execute("""
-                        SELECT filename, processing_date, status, metadata
-                        FROM processing_history
-                        WHERE user_id = %s
-                        ORDER BY processing_date DESC
+                        SELECT ph.id, ph.filename, ph.processing_date, ph.status, ph.metadata
+                        FROM processing_history ph
+                        WHERE ph.user_id = %s
+                        ORDER BY ph.processing_date DESC
                         LIMIT %s
                     """, (user_id, limit))
                     return [dict(row) for row in cursor.fetchall()]
         except Exception as e:
             logger.error(f"Error getting processing history: {e}")
             return []
+    
+    def save_processing_result(self, history_id: int, result_data: Dict[str, Any]) -> bool:
+        """Save processing result data."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO processing_results (history_id, result_data)
+                        VALUES (%s, %s)
+                    """, (history_id, psycopg2.extras.Json(result_data)))
+                    conn.commit()
+                    logger.info(f"Processing result saved for history {history_id}")
+                    return True
+        except Exception as e:
+            logger.error(f"Error saving processing result: {e}")
+            return False
+    
+    def get_processing_result(self, history_id: int) -> Optional[Dict[str, Any]]:
+        """Get processing result data by history ID."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    cursor.execute("""
+                        SELECT result_data, created_at
+                        FROM processing_results
+                        WHERE history_id = %s
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    """, (history_id,))
+                    result = cursor.fetchone()
+                    return dict(result) if result else None
+        except Exception as e:
+            logger.error(f"Error getting processing result: {e}")
+            return None
+    
+    def save_custom_prompt(self, user_id: int, name: str, prompt_text: str) -> bool:
+        """Save a custom prompt for a user."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO custom_prompts (user_id, name, prompt_text)
+                        VALUES (%s, %s, %s)
+                        RETURNING id
+                    """, (user_id, name, prompt_text))
+                    prompt_id = cursor.fetchone()[0]
+                    conn.commit()
+                    logger.info(f"Custom prompt '{name}' saved for user {user_id}")
+                    return True
+        except Exception as e:
+            logger.error(f"Error saving custom prompt: {e}")
+            return False
+    
+    def get_custom_prompts(self, user_id: int) -> list:
+        """Get all custom prompts for a user."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    cursor.execute("""
+                        SELECT id, name, prompt_text, is_default, created_at, updated_at
+                        FROM custom_prompts
+                        WHERE user_id = %s
+                        ORDER BY created_at DESC
+                    """, (user_id,))
+                    return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Error getting custom prompts: {e}")
+            return []
+    
+    def get_custom_prompt(self, prompt_id: int) -> Optional[Dict[str, Any]]:
+        """Get a specific custom prompt by ID."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    cursor.execute("""
+                        SELECT id, name, prompt_text, is_default, created_at, updated_at
+                        FROM custom_prompts
+                        WHERE id = %s
+                    """, (prompt_id,))
+                    result = cursor.fetchone()
+                    return dict(result) if result else None
+        except Exception as e:
+            logger.error(f"Error getting custom prompt: {e}")
+            return None
+    
+    def delete_custom_prompt(self, prompt_id: int, user_id: int) -> bool:
+        """Delete a custom prompt."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        DELETE FROM custom_prompts
+                        WHERE id = %s AND user_id = %s
+                    """, (prompt_id, user_id))
+                    deleted_count = cursor.rowcount
+                    conn.commit()
+                    if deleted_count > 0:
+                        logger.info(f"Custom prompt {prompt_id} deleted for user {user_id}")
+                        return True
+                    return False
+        except Exception as e:
+            logger.error(f"Error deleting custom prompt: {e}")
+            return False
     
     def cleanup_expired_sessions(self):
         """Clean up expired sessions."""

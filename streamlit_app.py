@@ -218,8 +218,6 @@ def login_page():
                         st.error("❌ Passwords don't match!")
                     elif len(new_password) < 6:
                         st.error("❌ Password must be at least 6 characters!")
-                    elif create_user_account(new_username, new_password, new_email):
-                        st.success("✅ Account created successfully! You can now login.")
                     else:
                         st.error("❌ Username already exists!")
     
@@ -550,30 +548,30 @@ def generate_docx_file(resume_data: Dict[str, Any], filename: str) -> bytes:
     Returns:
         bytes: The DOCX file content as bytes
     """
-    try:
-        # Create temporary file path
-        temp_docx_path = tempfile.mktemp(suffix='.docx')
+    # try:
+    # Create temporary file path
+    temp_docx_path = tempfile.mktemp(suffix='.docx')
+    
+    # Convert resume data to JSON string
+    resume_json = json.dumps(resume_data)
+    
+    # Generate DOCX using the ResumeDocumentGenerator
+    generator = ResumeDocumentGenerator(page_height=11)  # Standard letter size
+    generator.generate_docx(resume_json, temp_docx_path)
+    
+    # Read the generated file and return as bytes
+    with open(temp_docx_path, 'rb') as f:
+        docx_content = f.read()
+    
+    # Clean up temporary file
+    if os.path.exists(temp_docx_path):
+        os.unlink(temp_docx_path)
+    
+    return docx_content
         
-        # Convert resume data to JSON string
-        resume_json = json.dumps(resume_data)
-        
-        # Generate DOCX using the ResumeDocumentGenerator
-        generator = ResumeDocumentGenerator(page_height=11)  # Standard letter size
-        generator.generate_docx(resume_json, temp_docx_path)
-        
-        # Read the generated file and return as bytes
-        with open(temp_docx_path, 'rb') as f:
-            docx_content = f.read()
-        
-        # Clean up temporary file
-        if os.path.exists(temp_docx_path):
-            os.unlink(temp_docx_path)
-        
-        return docx_content
-        
-    except Exception as e:
-        st.error(f"Error generating DOCX: {str(e)}")
-        return None
+    # except Exception as e:
+    #     st.error(f"Error generating DOCX: {str(e)}")
+    #     return None
 
 
 def render_editing_interface():
@@ -706,12 +704,13 @@ def render_editing_interface():
                     edu['gpa'] = st.number_input(f"GPA {i+1}", value=float(edu.get("gpa", 0.0)) if edu.get("gpa") else 0.0, step=0.01, key=f"gpa_{i}")
     
     # Skills Section
+    st.caption("Skills (comma-separated)")
+
     with shadcn_card(
         title="🛠️ Skills",
         key="skills_card"
     ):
         skills_text = ", ".join(final_data.get("skills", []))
-        st.caption("Skills (comma-separated)")
         skills_input = shadcn_textarea(default_value=skills_text, key="skills_input")
         skills = [skill.strip() for skill in skills_input.split(",") if skill.strip()]
     
@@ -821,6 +820,268 @@ def render_editing_interface():
         )
 
 
+def show_processing_history_tab():
+    """Show processing history tab."""
+    st.header("📊 Processing History")
+    
+    if not DATABASE_AVAILABLE:
+        st.warning("⚠️ Database not available. Processing history is not available in demo mode.")
+        return
+    
+    if not st.session_state.get('user_id'):
+        st.warning("⚠️ User not logged in.")
+        return
+    
+    # Get processing history
+    history = db_manager.get_processing_history(st.session_state.user_id, limit=50)
+    
+    if not history:
+        st.info("📝 No processing history found. Start by processing a resume!")
+        return
+    
+    # Display history in a table
+    for i, record in enumerate(history):
+        with shadcn_card(
+            title=f"📄 {record['filename']}",
+            key=f"history_card_{i}"
+        ):
+            col1, col2, col3 = st.columns([2, 1, 1])
+            
+            with col1:
+                st.caption(f"**Processed:** {record['processing_date'].strftime('%Y-%m-%d %H:%M:%S')}")
+                if record['metadata']:
+                    st.caption(f"**Status:** {record['status']}")
+            
+            with col2:
+                if button("🔄 Load Result", variant="outline", key=f"load_result_{i}"):
+                    result = db_manager.get_processing_result(record['id'])
+                    if result:
+                        st.session_state.edited_data = result['result_data']
+                        st.session_state.processing_complete = True
+                        # Switch to resume processing tab
+                        st.rerun()
+                    else:
+                        st.error("❌ No result data found for this record")
+            
+            with col3:
+                if button("🗑️ Delete", variant="outline", key=f"delete_history_{i}"):
+                    # TODO: Add delete functionality
+                    st.warning("Delete functionality not implemented yet")
+
+
+def show_prompt_management_tab():
+    """Show prompt management tab."""
+    st.header("🔧 Prompt Management")
+    
+    # Load default prompt
+    from src.prompts.resume_restructure_prompts import RESUME_RESTRUCTURE_PROMPT
+    default_prompt = RESUME_RESTRUCTURE_PROMPT.template
+    
+    # Get custom prompts from database
+    custom_prompts = []
+    if DATABASE_AVAILABLE and st.session_state.get('user_id'):
+        custom_prompts = db_manager.get_custom_prompts(st.session_state.user_id)
+    
+    # Current prompt selection
+    with shadcn_card(
+        title="🎯 Current Prompt Selection",
+        key="current_prompt_card"
+    ):
+        if custom_prompts:
+            # Show custom prompts dropdown
+            prompt_options = ["Default Prompt"] + [f"{p['name']} (Custom)" for p in custom_prompts]
+            selected_prompt_index = st.selectbox(
+                "Select a prompt to use:",
+                options=prompt_options,
+                index=0,
+                key="prompt_selector"
+            )
+            
+            if selected_prompt_index == "Default Prompt":
+                st.session_state.selected_prompt = default_prompt
+                st.session_state.selected_prompt_name = "Default"
+            else:
+                # Get the selected custom prompt
+                prompt_name = selected_prompt_index.replace(" (Custom)", "")
+                selected_prompt = next((p for p in custom_prompts if p['name'] == prompt_name), None)
+                if selected_prompt:
+                    st.session_state.selected_prompt = selected_prompt['prompt_text']
+                    st.session_state.selected_prompt_name = selected_prompt['name']
+        else:
+            st.session_state.selected_prompt = default_prompt
+            st.session_state.selected_prompt_name = "Default"
+            st.info("📝 No custom prompts found. Using default prompt.")
+        
+        # Show current prompt preview
+        with st.expander("👀 Preview Current Prompt", expanded=False):
+            current_prompt = st.session_state.get('selected_prompt', default_prompt)
+            if current_prompt:
+                preview_text = current_prompt[:500] + "..." if len(current_prompt) > 500 else current_prompt
+                st.text_area(
+                    "Current Prompt",
+                    value=preview_text,
+                    height=150,
+                    disabled=True,
+                    key="prompt_preview"
+                )
+                if len(current_prompt) > 500:
+                    st.caption("(Showing first 500 characters)")
+    
+    # Create new custom prompt
+    with shadcn_card(
+        title="📝 Create New Custom Prompt",
+        key="create_prompt_card"
+    ):
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            prompt_name = shadcn_input(
+                default_value="",
+                placeholder="Enter prompt name",
+                key="new_prompt_name"
+            )
+            st.caption("Prompt Name")
+        
+        with col2:
+            if button("💾 Save New Prompt", variant="default", key="save_new_prompt"):
+                if not prompt_name:
+                    st.error("❌ Please enter a prompt name!")
+                elif not DATABASE_AVAILABLE:
+                    st.error("❌ Database not available. Cannot save in demo mode.")
+                else:
+                    # Get the prompt text from the editor below
+                    new_prompt_text = st.session_state.get('new_prompt_text', default_prompt)
+                    if db_manager.save_custom_prompt(st.session_state.user_id, prompt_name, new_prompt_text):
+                        st.success("✅ Custom prompt saved successfully!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to save custom prompt!")
+        
+        # Prompt editor
+        st.caption("Prompt Template")
+        new_prompt_text = shadcn_textarea(
+            default_value=default_prompt,
+            key="new_prompt_text"
+        )
+        
+        # Placeholder information
+        with st.expander("💡 Available Placeholders", expanded=False):
+            st.markdown("""
+            **Use these placeholders in your prompt:**
+            
+            - `{resume_data}` - The structured resume data to process
+            - `{reference_number}` - The reference number for the resume
+            
+            **Example usage:**
+            ```
+            You are a professional resume restructuring expert. 
+            Transform the provided resume data: {resume_data}
+            Use reference number: {reference_number}
+            ```
+            """)
+    
+    # Manage existing custom prompts
+    if custom_prompts:
+        with shadcn_card(
+            title="📋 Manage Custom Prompts",
+            key="manage_prompts_card"
+        ):
+            for i, prompt in enumerate(custom_prompts):
+                with st.expander(f"📝 {prompt['name']} (Created: {prompt['created_at'].strftime('%Y-%m-%d')})", expanded=False):
+                    st.text_area(
+                        f"Prompt Content",
+                        value=prompt['prompt_text'],
+                        height=200,
+                        disabled=True,
+                        key=f"prompt_content_{i}"
+                    )
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if button("🗑️ Delete", variant="outline", key=f"delete_prompt_{i}"):
+                            if db_manager.delete_custom_prompt(prompt['id'], st.session_state.user_id):
+                                st.success("✅ Prompt deleted successfully!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Failed to delete prompt!")
+                    
+                    with col2:
+                        if button("📋 Use This Prompt", variant="default", key=f"use_prompt_{i}"):
+                            st.session_state.selected_prompt = prompt['prompt_text']
+                            st.session_state.selected_prompt_name = prompt['name']
+                            st.success(f"✅ Now using prompt: {prompt['name']}")
+
+
+def show_resume_processing_tab():
+    """Show resume processing tab."""
+    st.header("📁 Resume Processing")
+    
+    # File upload
+    with shadcn_card(
+        title="📁 Upload Resume",
+        key="upload_card"
+    ):
+        uploaded_file = st.file_uploader(
+            "Choose a PDF file",
+            type=['pdf'],
+            help="Upload a PDF resume to process",
+            key="file_uploader"
+        )
+        
+        # Check if a new file was uploaded
+        if uploaded_file is not None:
+            # If this is a new file, reset the session state
+            if st.session_state.current_filename != uploaded_file.name:
+                st.session_state.current_filename = uploaded_file.name
+                st.session_state.processing_complete = False
+                st.session_state.edited_data = None
+                st.session_state.original_results = None
+            
+            st.success(f"✅ File uploaded: {uploaded_file.name}")
+            
+            # Show processing button if not already processed
+            if not st.session_state.processing_complete:
+                if button("🚀 Process Resume (3 Steps)", variant="default", key="process_button"):
+                    with st.spinner("Processing resume through 3-step pipeline..."):
+                        try:
+                            # Get selected prompt
+                            selected_prompt = st.session_state.get('selected_prompt', None)
+                            
+                            results = process_resume_3_steps(uploaded_file, st.session_state.api_key, selected_prompt)
+                            
+                            # Store results in session state
+                            st.session_state.edited_data = results["step3_final_data"].copy()
+                            st.session_state.original_results = results.copy()
+                            st.session_state.processing_complete = True
+                            
+                            # Save processing history and results to database
+                            if DATABASE_AVAILABLE:
+                                user_id = st.session_state.get('user_id')
+                                if user_id:
+                                    metadata = {
+                                        'target_role': 'Software Engineer',
+                                        'template_style': 'professional',
+                                        'steps_completed': 3,
+                                        'prompt_used': st.session_state.get('selected_prompt_name', 'Default')
+                                    }
+                                    history_id = db_manager.save_processing_history(user_id, uploaded_file.name, metadata)
+                                    if history_id:
+                                        db_manager.save_processing_result(history_id, results["step3_final_data"])
+                            
+                            st.success("✅ Processing complete! You can now edit the data below.")
+                            st.rerun()
+                            
+                        except Exception as e:
+                            st.error(f"❌ Error processing resume: {str(e)}")
+                            st.exception(e)
+            
+            # Show editing interface if processing is complete
+            if st.session_state.processing_complete and st.session_state.edited_data is not None:
+                st.info("💡 **Export Options:** You can export your resume as JSON, TXT, or DOCX format. Use the buttons below or the Quick Export section in the sidebar.")
+                
+                render_editing_interface()
+
+
 def main():
     st.set_page_config(
         page_title="Resume Processing Tool",
@@ -864,200 +1125,35 @@ def main():
             </p>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Show user info in sidebar
-        show_user_info()
-        logout_button()
+        # Initialize session state
+        if 'processing_complete' not in st.session_state:
+            st.session_state.processing_complete = False
+        if 'current_filename' not in st.session_state:
+            st.session_state.current_filename = ""
+        if 'current_step' not in st.session_state:
+            st.session_state.current_step = 1
 
-    # Prompt editing section in sidebar
-    with st.sidebar:
-        with shadcn_card(
-            title="🔧 AI Prompt Settings",
-            key="prompt_settings_card"
-        ):
-            # Load default prompt
-            from src.prompts.resume_restructure_prompts import RESUME_RESTRUCTURE_PROMPT
-            default_prompt = RESUME_RESTRUCTURE_PROMPT.template
-            
-            # Show prompt status and quick actions
-            current_prompt = st.session_state.get('custom_prompt', default_prompt)
-            is_custom = 'custom_prompt' in st.session_state
-            
-            if is_custom:
-                shadcn_badge(badge_list=[("✅ Using custom prompt", "default")], key="prompt_status_badge")
-            else:
-                shadcn_badge(badge_list=[("ℹ️ Using default prompt", "outline")], key="prompt_status_badge")
-            
-            # Show a preview of the current prompt
-            with st.expander("👀 Preview Current Prompt", expanded=False):
-                # Handle None case
-                if current_prompt is None:
-                    preview_text = "No prompt available"
-                else:
-                    preview_text = current_prompt[:500] + "..." if len(current_prompt) > 500 else current_prompt
-                
-                st.text_area(
-                    "Current Prompt",
-                    value=preview_text,
-                    height=150,
-                    disabled=True,
-                    key="prompt_preview"
-                )
-                if current_prompt and len(current_prompt) > 500:
-                    st.caption("(Showing first 500 characters)")
-                
-                # Debug info
-                st.caption(f"Prompt length: {len(current_prompt) if current_prompt else 0} characters")
-                st.caption(f"Is custom: {is_custom}")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                if button("📝 Edit Prompt", variant="outline", key="edit_prompt_btn"):
-                    st.session_state['show_prompt_editor'] = True
-            
-            with col2:
-                if button("🔄 Reset", variant="outline", key="reset_prompt_btn"):
-                    if 'custom_prompt' in st.session_state:
-                        del st.session_state['custom_prompt']
-                    if 'show_prompt_editor' in st.session_state:
-                        del st.session_state['show_prompt_editor']
-                    st.success("✅ Reset to default!")
-                    st.rerun()
-    
-    # Initialize session state
-    if 'processing_complete' not in st.session_state:
-        st.session_state.processing_complete = False
-    if 'current_filename' not in st.session_state:
-        st.session_state.current_filename = ""
-    
-    # Show prompt editor if requested
-    if st.session_state.get('show_prompt_editor', False):
-        with shadcn_card(
-            title="🔧 Customize AI Prompt",
-            description="Edit the AI prompt that guides resume restructuring",
-            key="prompt_editor_card"
-        ):
-            # Load default prompt
-            from src.prompts.resume_restructure_prompts import RESUME_RESTRUCTURE_PROMPT
-            default_prompt = RESUME_RESTRUCTURE_PROMPT.template
-            
-            # Use custom prompt if available, otherwise use default
-            current_prompt = st.session_state.get('custom_prompt', default_prompt)
-            
-            # Show current prompt status
-            if 'custom_prompt' in st.session_state:
-                st.info("📝 **Currently editing a custom prompt**")
-            else:
-                st.info("📝 **Currently editing the default prompt**")
-            
-            # Prompt editing interface
-            edited_prompt = shadcn_textarea(
-                default_value=current_prompt,
-                key="prompt_editor_textarea"
+        # Main content area with vertical tabs
+        col1, col2 = st.columns([1, 4])
+        
+        with col1:
+            # Vertical tabs in left column
+            selected_tab = st.radio(
+                "Navigation",
+                options=["📁 Resume Processing", "🔧 Prompt Management", "📊 Processing History"],
+                label_visibility="collapsed",
+                key="vertical_tabs"
             )
-            st.caption("AI Prompt Template")
-            
-            # Placeholder information
-            with st.expander("💡 Available Placeholders", expanded=False):
-                st.markdown("""
-                **Use these placeholders in your prompt:**
-                
-                - `{resume_data}` - The structured resume data to process
-                - `{reference_number}` - The reference number for the resume
-                
-                **Example usage:**
-                ```
-                You are a professional resume restructuring expert. 
-                Transform the provided resume data: {resume_data}
-                Use reference number: {reference_number}
-                ```
-                """)
-            
-            # Action buttons
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                if button("💾 Save Prompt", variant="default", key="save_prompt_main"):
-                    st.session_state['custom_prompt'] = edited_prompt
-                    st.success("✅ Custom prompt saved successfully!")
-                    st.rerun()
-            
-            with col2:
-                if button("🔄 Reset to Default", variant="outline", key="reset_prompt_main"):
-                    if 'custom_prompt' in st.session_state:
-                        del st.session_state['custom_prompt']
-                    st.success("✅ Reset to default prompt!")
-                    st.rerun()
-            
-            with col3:
-                if button("❌ Close Editor", variant="outline", key="close_prompt_editor"):
-                    del st.session_state['show_prompt_editor']
-                    st.rerun()
         
-        st.divider()
-    
-    # File upload
-    with shadcn_card(
-        title="📁 Upload Resume",
-        key="upload_card"
-    ):
-        uploaded_file = st.file_uploader(
-            "Choose a PDF file",
-            type=['pdf'],
-            help="Upload a PDF resume to process",
-            key="file_uploader"
-        )
-        
-        # Check if a new file was uploaded
-        if uploaded_file is not None:
-            # If this is a new file, reset the session state
-            if st.session_state.current_filename != uploaded_file.name:
-                st.session_state.current_filename = uploaded_file.name
-                st.session_state.processing_complete = False
-                st.session_state.edited_data = None
-                st.session_state.original_results = None
-            
-            st.success(f"✅ File uploaded: {uploaded_file.name}")
-            
-            # Show processing button if not already processed
-            if not st.session_state.processing_complete:
-                if button("🚀 Process Resume (3 Steps)", variant="default", key="process_button"):
-                    with st.spinner("Processing resume through 3-step pipeline..."):
-                        try:
-                            # Get custom prompt if available
-                            custom_prompt = st.session_state.get('custom_prompt', None)
-                            
-                            results = process_resume_3_steps(uploaded_file, st.session_state.api_key, custom_prompt)
-                            
-                            # Store results in session state
-                            st.session_state.edited_data = results["step3_final_data"].copy()
-                            st.session_state.original_results = results.copy()
-                            st.session_state.processing_complete = True
-                            
-                            # Save processing history to database
-                            if DATABASE_AVAILABLE:
-                                user_id = st.session_state.get('user_id')
-                                if user_id:
-                                    metadata = {
-                                        'target_role': 'Software Engineer',
-                                        'template_style': 'professional',
-                                        'steps_completed': 3
-                                    }
-                                    db_manager.save_processing_history(user_id, uploaded_file.name, metadata)
-                            
-                            st.success("✅ Processing complete! You can now edit the data below.")
-                            st.rerun()
-                            
-                        except Exception as e:
-                            st.error(f"❌ Error processing resume: {str(e)}")
-                            st.exception(e)
-            
-            # Show editing interface if processing is complete
-            if st.session_state.processing_complete and st.session_state.edited_data is not None:
-                st.info("💡 **Export Options:** You can export your resume as JSON, TXT, or DOCX format. Use the buttons below or the Quick Export section in the sidebar.")
-                
-                render_editing_interface()
+        with col2:
+            # Main content in right column
+            if selected_tab == "📁 Resume Processing":
+                show_resume_processing_tab()
+            elif selected_tab == "🔧 Prompt Management":
+                show_prompt_management_tab()
+            elif selected_tab == "📊 Processing History":
+                show_processing_history_tab()
+        logout_button()
 
 
 if __name__ == "__main__":
