@@ -78,22 +78,18 @@ class ResumeDocumentGenerator:
     def _create_header(self):
         """Create the header section with name and reference number."""
         # Header with name and title
-        name = self.resume_data.get('name', '') or 'N/A'
-        header = self.document.add_paragraph(name)
+        header = self.document.add_paragraph(self.resume_data['name'])
         header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        if header.runs:
-            name_run = header.runs[0]
-            name_run.font.size = Pt(32)
-            name_run.font.name = 'Georgia'
+        name_run = header.runs[0]
+        name_run.font.size = Pt(32)
+        name_run.font.name = 'Georgia'
 
-        reference_number = self.resume_data.get('reference_number', '') or 'N/A'
-        title_para = self.document.add_paragraph(f"Ref#: {reference_number}")
+        title_para = self.document.add_paragraph("Ref#: BED1-AMD")
         title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        if title_para.runs:
-            title_run = title_para.runs[0]
-            title_run.font.size = Pt(9)
-            title_run.font.italic = True
-            title_run.font.name = 'Arial'
+        title_run = title_para.runs[0]
+        title_run.font.size = Pt(9)
+        title_run.font.italic = True
+        title_run.font.name = 'Arial'
     
     def _create_main_table(self):
         """Create the main table structure for the resume layout."""
@@ -118,117 +114,97 @@ class ResumeDocumentGenerator:
     def _add_skills_section(self, skills_cell):
         """Add the skills section to the left sidebar."""
         # Summary section
-        summary = self.resume_data.get('summary', '')
-        if summary:
-            summary_parts = summary.split('. ')
-            for summ in summary_parts:
-                if summ.strip():
-                    sum_para = skills_cell.add_paragraph(summ)
-                    if sum_para.runs:
-                        sum_para.runs[0].font.name = 'Arial'
+        summary = self.resume_data['summary'].split('. ')
+        for summ in summary:
+            sum_para = skills_cell.add_paragraph(summ)
+            sum_para.runs[0].font.name = 'Arial'
 
         # Key Skills section
         skills_heading = skills_cell.add_paragraph()
         skills_heading.add_run("Key Skills").bold = True
-        if skills_heading.runs:
-            skills_heading.runs[0].font.size = Pt(14)
-            skills_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
-            skills_heading.runs[0].font.name = 'Georgia'
+        skills_heading.runs[0].font.size = Pt(14)
+        skills_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
+        skills_heading.runs[0].font.name = 'Georgia'
 
-        skills = self.resume_data.get('skills', [])
-        for skill in skills:
-            if skill and skill.strip():
-                skill_para = skills_cell.add_paragraph(skill)
-                if skill_para.runs:
-                    skill_para.runs[0].font.name = 'Arial'
-                skill_para.paragraph_format.space_before = Pt(0)
-                skill_para.paragraph_format.space_after = Pt(0.5)
+        for skill in self.resume_data['skills']:
+            skill_para = skills_cell.add_paragraph(skill)
+            skill_para.runs[0].font.name = 'Arial'
+            skill_para.paragraph_format.space_before = Pt(0)
+            skill_para.paragraph_format.space_after = Pt(0.5)
     
     def _add_experience_section(self, exp_cell):
         """Add the experience section to the main content area."""
         exp_heading = exp_cell.add_paragraph("Experience")
-        if exp_heading.runs:
-            exp_heading.runs[0].font.bold = True
-            exp_heading.runs[0].font.size = Pt(14)
-            exp_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
-            exp_heading.runs[0].font.name = 'Georgia'
+        exp_heading.runs[0].font.bold = True
+        exp_heading.runs[0].font.size = Pt(14)
+        exp_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
+        exp_heading.runs[0].font.name = 'Georgia'
 
         # Loop through experience data
         for exp in self.resume_data['experience']:
-            # Format dates - handle null/empty dates
-            start_date = exp.get('start_date', '') or 'N/A'
-            end_date = exp.get('end_date', '') or 'Present'
-            date_range = f"{start_date} – {end_date}"
+            # Format dates
+            end_date = exp['end_date'] if exp['end_date'] else 'Present'
+            date_range = f"{exp['start_date']} – {end_date}"
 
             # Job header with dates
             job_header = exp_cell.add_paragraph(date_range)
-            if job_header.runs:
-                job_header.runs[0].font.bold = True
-                job_header.runs[0].font.italic = True
-                job_header.runs[0].font.name = 'Arial'
-                job_header.runs[0].font.size = Pt(10)
+            job_header.runs[0].font.bold = True
+            job_header.runs[0].font.italic = True
+            job_header.runs[0].font.name = 'Arial'
+            job_header.runs[0].font.size = Pt(10)
             job_header.paragraph_format.space_before = Pt(0)
             job_header.paragraph_format.space_after = Pt(0)
             job_header.paragraph_format.line_spacing = 1.0
             
-            # Job title and company - handle null/empty values
-            title = exp.get('title', '') or 'N/A'
-            company = exp.get('company', '') or 'N/A'
-            job_title = exp_cell.add_paragraph(f"{title} • {company}")
-            if job_title.runs:
-                job_title.runs[0].font.bold = True
-                job_title.runs[0].font.name = 'Arial'
+            # Job title and company
+            job_title = exp_cell.add_paragraph(f"{exp['title']} • {exp['company']}")
+            job_title.runs[0].font.bold = True
+            job_title.runs[0].font.name = 'Arial'
             job_title.paragraph_format.space_before = Pt(0)
             job_title.paragraph_format.space_after = Pt(2)
             job_title.paragraph_format.line_spacing = 1.0
             
             # Job description
-            description = exp.get('description', '')
-            if description:
-                description_lines = description.split('\n')
+            if exp['achievements']:
+                description_lines = exp['achievements']
                 for line in description_lines:
                     if line.strip().startswith('*'):
                         # Remove the * and create bullet point
                         clean_line = line.strip()[1:].strip()
                         duty_para = exp_cell.add_paragraph(clean_line)
                         duty_para.style = 'List Bullet'
-                        if duty_para.runs:
-                            duty_para.runs[0].font.name = 'Arial'
+                        duty_para.runs[0].font.name = 'Arial'
                     elif line.strip():
                         # Regular paragraph
                         desc_para = exp_cell.add_paragraph(line.strip())
-                        if desc_para.runs:
-                            desc_para.runs[0].font.name = 'Arial'
+                        desc_para.style = 'List Bullet'
+                        desc_para.runs[0].font.name = 'Arial'
     
     def _add_education_section(self, edu_cell):
         """Add the education section to the bottom area."""
         edu_heading = edu_cell.add_paragraph("Education")
-        if edu_heading.runs:
-            edu_heading.runs[0].font.bold = True
-            edu_heading.runs[0].font.size = Pt(14)
-            edu_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
-            edu_heading.runs[0].font.name = 'Georgia'
+        edu_heading.runs[0].font.bold = True
+        edu_heading.runs[0].font.size = Pt(14)
+        edu_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
+        edu_heading.runs[0].font.name = 'Georgia'
         edu_heading.space_after = Pt(1)
 
         # Loop through education data
         for edu in self.resume_data['education']:
-            # Format education entry - handle null/empty start_date
-            start_date = edu.get('start_date', '') or edu.get('dates', '') or 'N/A'
+            # Format education entry
+            start_date = edu.get('start_date', '') or edu.get('dates', '') or edu.get('end_date', '') or 'N/A'
             edu_year = edu_cell.add_paragraph(start_date)
             if edu_year.runs:
                 edu_year.runs[0].font.bold = True
                 edu_year.runs[0].font.italic = True
                 edu_year.runs[0].font.name = 'Arial'
+
             edu_year.paragraph_format.space_before = Pt(0)
             edu_year.paragraph_format.space_after = Pt(0.5)
 
-            # Handle null/empty degree and institution
-            degree = edu.get('degree', '') or 'N/A'
-            institution = edu.get('institution', '') or 'N/A'
-            edu_text = f"{degree}, {institution}"
+            edu_text = f"{edu['degree']}, {edu['institution']}"
             edu_para = edu_cell.add_paragraph(edu_text)
-            if edu_para.runs:
-                edu_para.runs[0].font.name = 'Arial'
+            edu_para.runs[0].font.name = 'Arial'
             edu_para.paragraph_format.space_before = Pt(0.5)
             edu_para.paragraph_format.space_after = Pt(0.5)
     
@@ -243,43 +219,30 @@ class ResumeDocumentGenerator:
         Returns:
             str: Path to the generated DOCX file
         """
-        try:
-            # Parse JSON data
-            if isinstance(request_json, str):
-                self.resume_data = json.loads(request_json)
-            else:
-                self.resume_data = request_json
-            
-            # Validate required fields
-            if not self.resume_data:
-                raise ValueError("No resume data provided")
-            
-            # Set up document
-            self._setup_document()
-            
-            # Add logo
-            self._add_logo()
-            
-            # Create header
-            self._create_header()
-            
-            # Create main table structure
-            main_table = self._create_main_table()
-            
-            # Add content sections
-            self._add_skills_section(main_table.cell(0, 0))
-            self._add_experience_section(main_table.cell(0, 1))
-            self._add_education_section(main_table.cell(1, 1))
-            
-            # Save document
-            self.document.save(output_file)
-            
-            return output_file
-            
-        except Exception as e:
-            import logging
-            logging.error(f"Error generating DOCX: {str(e)}")
-            raise
+        # Parse JSON data
+        self.resume_data = json.loads(request_json)
+        
+        # Set up document
+        self._setup_document()
+        
+        # Add logo
+        self._add_logo()
+        
+        # Create header
+        self._create_header()
+        
+        # Create main table structure
+        main_table = self._create_main_table()
+        
+        # Add content sections
+        self._add_skills_section(main_table.cell(0, 0))
+        self._add_experience_section(main_table.cell(0, 1))
+        self._add_education_section(main_table.cell(1, 1))
+        
+        # Save document
+        self.document.save(output_file)
+        
+        return output_file
 
 
 def create_resume_document(request_json, output_file, page_height=14):

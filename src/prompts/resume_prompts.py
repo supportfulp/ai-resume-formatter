@@ -23,7 +23,6 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
                 "title": "Job title", 
                 "start_date": "Start date",
                 "end_date": "End date or null",
-                "description": "Job description",
                 "achievements": ["achievement1", "achievement2"] or null
             }}
         ],

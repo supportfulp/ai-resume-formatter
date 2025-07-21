@@ -702,8 +702,8 @@ def render_editing_interface():
                     st.caption(f"End Date {i+1}")
                     exp['end_date'] = shadcn_input(default_value=exp.get("end_date", ""), key=f"end_{i}")
                 
-                st.caption(f"Description {i+1}")
-                exp['description'] = shadcn_textarea(default_value=exp.get("description", ""), key=f"desc_{i}")
+                st.caption(f"Achievements {i+1}")
+                exp['achievements'] = shadcn_textarea(default_value=exp.get("achievements", ""), key=f"desc_{i}")
     
     # Education Section
     with shadcn_card(

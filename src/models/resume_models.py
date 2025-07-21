@@ -9,7 +9,7 @@ class Experience(BaseModel):
     """Work experience model."""
     company: str
     title: str
-    start_date: str
+    start_date: Optional[str] = None
     end_date: Optional[str] = None
     description: Optional[str] = None
     achievements: Optional[List[str]] = None
