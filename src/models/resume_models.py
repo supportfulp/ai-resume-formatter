@@ -21,7 +21,7 @@ class Education(BaseModel):
     institution: str
     start_date: Optional[str] = None
     end_date: Optional[str] = None
-    gpa: Optional[float] = None
+    gpa: Optional[str] = None
     relevant_coursework: Optional[List[str]] = None
 
 
