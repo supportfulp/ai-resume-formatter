@@ -21,8 +21,8 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
             {{
                 "company": "Company name",
                 "title": "Job title", 
-                "start_date": "Start date",
-                "end_date": "End date or null",
+                "start_date": "Start date (year)",
+                "end_date": "End date (year) or null",
                 "achievements": ["achievement1", "achievement2"] or null
             }}
         ],
@@ -30,8 +30,8 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
             {{
                 "degree": "Degree name",
                 "institution": "Institution name",
-                "start_date": "Start date",
-                "end_date": "End date or null",
+                "start_date": "Start date (year)",
+                "end_date": "End date (year) or null",
                 "gpa": GPA or null,
                 "relevant_coursework": ["course1", "course2"] or null
             }}

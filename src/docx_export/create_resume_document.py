@@ -125,6 +125,7 @@ class ResumeDocumentGenerator:
         skills_heading.runs[0].font.size = Pt(14)
         skills_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
         skills_heading.runs[0].font.name = 'Georgia'
+        skills_heading.paragraph_format.line_spacing = 1.1
 
         for skill in self.resume_data['skills']:
             skill_para = skills_cell.add_paragraph(skill)
@@ -197,7 +198,7 @@ class ResumeDocumentGenerator:
         for edu in self.resume_data['education']:
             # Format education entry
             start_date = edu.get('start_date', '') or edu.get('dates', '') or edu.get('end_date', '') or 'N/A'
-            edu_year = edu_cell.add_paragraph(start_date)
+            edu_year = edu_cell.add_paragraph(str(start_date))
             if edu_year.runs:
                 edu_year.runs[0].font.bold = True
                 edu_year.runs[0].font.italic = True
