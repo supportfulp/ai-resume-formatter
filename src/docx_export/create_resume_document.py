@@ -130,6 +130,7 @@ class ResumeDocumentGenerator:
         skills_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
         skills_heading.runs[0].font.name = 'Georgia'
         skills_heading.paragraph_format.line_spacing = 1.1
+        skills_heading.paragraph_format.space_after = Pt(1.5)
 
         for skill in self.resume_data['skills']:
             skill_para = skills_cell.add_paragraph(skill)
@@ -144,6 +145,7 @@ class ResumeDocumentGenerator:
         exp_heading.runs[0].font.size = Pt(14)
         exp_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
         exp_heading.runs[0].font.name = 'Georgia'
+        exp_heading.paragraph_format.space_after = Pt(1.5)
 
         # Loop through experience data
         for exp in self.resume_data['experience']:
@@ -161,6 +163,7 @@ class ResumeDocumentGenerator:
             job_header.paragraph_format.space_before = Pt(0)
             job_header.paragraph_format.space_after = Pt(0)
             job_header.paragraph_format.line_spacing = 1.0
+            
             
             # Job title and company
             job_title = exp_cell.add_paragraph(f"{exp['title']} • {exp['company']}")
@@ -197,6 +200,7 @@ class ResumeDocumentGenerator:
         edu_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
         edu_heading.runs[0].font.name = 'Georgia'
         edu_heading.space_after = Pt(1)
+        edu_heading.paragraph_format.space_after = Pt(1.5)
 
         # Loop through education data
         for edu in self.resume_data['education']:
