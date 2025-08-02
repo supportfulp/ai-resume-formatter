@@ -91,7 +91,7 @@ class ResumeDocumentGenerator:
         title_run.font.italic = True
         title_run.font.name = 'Arial'
     
-    def _create_main_table(self):
+    def _create_main_table(self, skills_column_width=2.25, exp_column_width=5.25):
         """Create the main table structure for the resume layout."""
         # Create main table structure
         main_table = self.document.add_table(rows=2, cols=4)
@@ -99,10 +99,14 @@ class ResumeDocumentGenerator:
 
         # Merge cells for layout
         main_table.cell(0, 0).merge(main_table.cell(1, 0))  # Skills column
-        main_table.cell(0, 1).merge(main_table.cell(0, 2))  # Experience row 1
-        main_table.cell(0, 1).merge(main_table.cell(0, 3))  # Experience row 1
-        main_table.cell(1, 1).merge(main_table.cell(1, 2))  # Education row 2
-        main_table.cell(1, 1).merge(main_table.cell(1, 3))  # Education row 2
+        # main_table.cell(0, 1).merge(main_table.cell(0, 2))  # Experience row 1
+        # main_table.cell(0, 1).merge(main_table.cell(0, 3))  # Experience row 1
+        # main_table.cell(1, 1).merge(main_table.cell(1, 2))  # Education row 2
+        # main_table.cell(1, 1).merge(main_table.cell(1, 3))  # Education row 2
+
+        # Set column widths more reliably by setting cell widths
+        main_table.cell(0, 0).width = Inches(skills_column_width)  # Skills column
+        main_table.cell(0, 1).width = Inches(exp_column_width)  # Experience column
 
         # Apply borders
         self._add_cell_borders(main_table.cell(0, 0), ['top', 'right'])  # Skills cell
