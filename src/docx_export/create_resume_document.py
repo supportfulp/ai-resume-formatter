@@ -42,7 +42,7 @@ class ResumeDocumentGenerator:
         for border_name in borders_to_add:
             border_element = OxmlElement(f'w:{border_name}')
             border_element.set(qn('w:val'), 'single')
-            border_element.set(qn('w:sz'), '24')  # Border thickness
+            border_element.set(qn('w:sz'), '18')  # Border thickness
             border_element.set(qn('w:color'), '#638276')  # Border color
             tcBorders.append(border_element)
     
@@ -148,18 +148,20 @@ class ResumeDocumentGenerator:
 
             # Job header with dates
             job_header = exp_cell.add_paragraph(date_range)
-            job_header.runs[0].font.bold = True
+            job_header.runs[0].font.bold = False
             job_header.runs[0].font.italic = True
             job_header.runs[0].font.name = 'Arial'
             job_header.runs[0].font.size = Pt(10)
+            job_header.runs[0].font.color.rgb = RGBColor(64, 64, 64)
             job_header.paragraph_format.space_before = Pt(0)
             job_header.paragraph_format.space_after = Pt(0)
             job_header.paragraph_format.line_spacing = 1.0
             
             # Job title and company
             job_title = exp_cell.add_paragraph(f"{exp['title']} • {exp['company']}")
-            job_title.runs[0].font.bold = True
+            job_title.runs[0].font.bold = False
             job_title.runs[0].font.name = 'Arial'
+            job_title.runs[0].font.color.rgb = RGBColor(64, 64, 64)
             job_title.paragraph_format.space_before = Pt(0)
             job_title.paragraph_format.space_after = Pt(2)
             job_title.paragraph_format.line_spacing = 1.0
@@ -174,11 +176,13 @@ class ResumeDocumentGenerator:
                         duty_para = exp_cell.add_paragraph(clean_line)
                         duty_para.style = 'List Bullet'
                         duty_para.runs[0].font.name = 'Arial'
+                        duty_para.paragraph_format.left_indent = Inches(0.5)  # Indent bullets to the right
                     elif line.strip():
                         # Regular paragraph
                         desc_para = exp_cell.add_paragraph(line.strip())
                         desc_para.style = 'List Bullet'
                         desc_para.runs[0].font.name = 'Arial'
+                        desc_para.paragraph_format.left_indent = Inches(0.5)  # Indent bullets to the right
     
     def _add_education_section(self, edu_cell):
         """Add the education section to the bottom area."""
