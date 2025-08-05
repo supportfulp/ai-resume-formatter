@@ -99,14 +99,16 @@ class ResumeDocumentGenerator:
 
         # Merge cells for layout
         main_table.cell(0, 0).merge(main_table.cell(1, 0))  # Skills column
-        # main_table.cell(0, 1).merge(main_table.cell(0, 2))  # Experience row 1
-        # main_table.cell(0, 1).merge(main_table.cell(0, 3))  # Experience row 1
-        # main_table.cell(1, 1).merge(main_table.cell(1, 2))  # Education row 2
-        # main_table.cell(1, 1).merge(main_table.cell(1, 3))  # Education row 2
+        main_table.cell(0, 1).merge(main_table.cell(0, 2))  # Experience row 1
+        main_table.cell(0, 1).merge(main_table.cell(0, 3))  # Experience row 1
+        main_table.cell(1, 1).merge(main_table.cell(1, 2))  # Education row 2
+        main_table.cell(1, 1).merge(main_table.cell(1, 3))  # Education row 2
 
-        # Set column widths more reliably by setting cell widths
-        main_table.cell(0, 0).width = Inches(skills_column_width)  # Skills column
-        main_table.cell(0, 1).width = Inches(exp_column_width)  # Experience column
+        # Set column widths properly
+        main_table.columns[0].width = Inches(skills_column_width)  # Skills column
+        main_table.columns[1].width = Inches(exp_column_width)  # Experience column
+        main_table.columns[2].width = Inches(0.1)  # Minimal width for merged columns
+        main_table.columns[3].width = Inches(0.1)  # Minimal width for merged columns
 
         # Apply borders
         self._add_cell_borders(main_table.cell(0, 0), ['top', 'right'])  # Skills cell

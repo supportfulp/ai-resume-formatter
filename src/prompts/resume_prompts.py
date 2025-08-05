@@ -45,6 +45,7 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
     {resume_text}
 
     IMPORTANT: Return ONLY the JSON object, no other text, no markdown formatting, no explanations.
+    IMPORTANT: The Skills should be ordered by the most relevant to the least relevant to the person's experience.
     """
 )
 
