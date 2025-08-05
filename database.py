@@ -538,6 +538,58 @@ class DatabaseManager:
                 'avg_cost_per_request': 0
             }
     
+    def get_token_usage_history(self, user_id: int, limit: int = 20) -> list:
+        """Get token usage history for API endpoints."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    cursor.execute("""
+                        SELECT 
+                            tu.*
+                        FROM token_usage tu
+                        WHERE tu.user_id = %s 
+                        ORDER BY tu.created_at DESC
+                        LIMIT %s
+                    """, (user_id, limit))
+                    return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Error getting token usage history: {e}")
+            return []
+    
+    def get_token_usage_stats(self, user_id: int) -> Dict[str, Any]:
+        """Get token usage statistics for dashboard."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                    cursor.execute("""
+                        SELECT 
+                            COUNT(DISTINCT ph.id) as total_sessions,
+                            COALESCE(SUM(tu.total_tokens), 0) as total_tokens,
+                            COALESCE(SUM(tu.total_cost_usd), 0) as total_cost,
+                            COALESCE(AVG(tu.total_cost_usd), 0) as average_cost_per_session
+                        FROM processing_history ph
+                        LEFT JOIN token_usage tu ON ph.id = tu.processing_history_id
+                        WHERE ph.user_id = %s
+                    """, (user_id,))
+                    result = cursor.fetchone()
+                    if result:
+                        return dict(result)
+                    else:
+                        return {
+                            'total_sessions': 0,
+                            'total_tokens': 0,
+                            'total_cost': 0,
+                            'average_cost_per_session': 0
+                        }
+        except Exception as e:
+            logger.error(f"Error getting token usage stats: {e}")
+            return {
+                'total_sessions': 0,
+                'total_tokens': 0,
+                'total_cost': 0,
+                'average_cost_per_session': 0
+            }
+
     def cleanup_expired_sessions(self):
         """Clean up expired sessions."""
         try:
