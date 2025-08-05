@@ -9,8 +9,8 @@ class Experience(BaseModel):
     """Work experience model."""
     company: str
     title: str
-    start_date: Optional[int] = None
-    end_date: Optional[int] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     description: Optional[str] = None
     achievements: Optional[List[str]] = None
 
@@ -19,8 +19,8 @@ class Education(BaseModel):
     """Education model."""
     degree: str
     institution: str
-    start_date: Optional[int] = None
-    end_date: Optional[int] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     gpa: Optional[str] = None
     relevant_coursework: Optional[List[str]] = None
 

@@ -44,58 +44,9 @@ const MainApp: React.FC = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="flex">
-        <Sidebar />
-        <div className="flex-1 flex">
-          {/* Navigation Sidebar */}
-          <div className="w-64 border-r bg-background p-4">
-            <nav className="space-y-2">
-              <button
-                onClick={() => setSelectedTab('processing')}
-                className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                  selectedTab === 'processing'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-accent hover:text-accent-foreground'
-                }`}
-              >
-                📁 Resume Processing
-              </button>
-              <button
-                onClick={() => setSelectedTab('prompts')}
-                className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                  selectedTab === 'prompts'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-accent hover:text-accent-foreground'
-                }`}
-              >
-                🔧 Prompt Management
-              </button>
-              <button
-                onClick={() => setSelectedTab('history')}
-                className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                  selectedTab === 'history'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-accent hover:text-accent-foreground'
-                }`}
-              >
-                📊 Processing History
-              </button>
-              <button
-                onClick={() => setSelectedTab('dashboard')}
-                className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                  selectedTab === 'dashboard'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-accent hover:text-accent-foreground'
-                }`}
-              >
-                💰 Consumption Dashboard
-              </button>
-            </nav>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 p-6">
-            {renderTabContent()}
-          </div>
+        <Sidebar selectedTab={selectedTab} onTabChange={setSelectedTab} />
+        <div className="flex-1 p-6">
+          {renderTabContent()}
         </div>
       </div>
     </div>

@@ -1,43 +1,33 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Textarea } from '../ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { useProcessingStore } from '../../store/useProcessingStore'
 import { toast } from 'sonner'
+import ResumeFormEditor from './ResumeFormEditor'
 
 const DataEditor: React.FC = () => {
-  const { editedData, originalResults, setEditedData } = useProcessingStore()
-  const [jsonString, setJsonString] = useState('')
-  const [isValidJson, setIsValidJson] = useState(true)
-
-  useEffect(() => {
-    if (editedData) {
-      setJsonString(JSON.stringify(editedData, null, 2))
-    }
-  }, [editedData])
-
-  const handleJsonChange = (value: string) => {
-    setJsonString(value)
-    try {
-      JSON.parse(value)
-      setIsValidJson(true)
-    } catch {
-      setIsValidJson(false)
-    }
-  }
+  const { editedData, originalResults } = useProcessingStore()
 
   const saveJsonChanges = () => {
-    try {
-      const parsedData = JSON.parse(jsonString)
-      setEditedData(parsedData)
-      toast.success('Data saved successfully!')
-    } catch {
-      toast.error('Invalid JSON format. Please check your syntax.')
+    // This function is now handled by the ResumeFormEditor component
+    toast.success('Data saved successfully!')
+  }
+
+  // Helper function to create better filenames using person's name
+  const createFilename = (baseFilename: string, data?: any) => {
+    if (data?.name && data.name !== 'Unknown' && data.name !== 'Resume Candidate') {
+      const cleanName = data.name.replace(/[^a-zA-Z\s]/g, '').trim().replace(/\s+/g, '_')
+      const extension = baseFilename.split('.').pop()
+      const baseName = baseFilename.split('.')[0]
+      return `${cleanName}_${baseName}.${extension}`
     }
+    return baseFilename
   }
 
   const exportJson = (data: any, filename: string) => {
+    const finalFilename = createFilename(filename, data)
     const blob = new Blob([JSON.stringify(data, null, 2)], { 
       type: 'application/json' 
     })
@@ -45,20 +35,21 @@ const DataEditor: React.FC = () => {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = filename
+    a.download = finalFilename
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
   }
 
-  const exportText = (text: string, filename: string) => {
+  const exportText = (text: string, filename: string, data?: any) => {
+    const finalFilename = createFilename(filename, data)
     const blob = new Blob([text], { type: 'text/plain' })
     
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = filename
+    a.download = finalFilename
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
@@ -99,7 +90,7 @@ const DataEditor: React.FC = () => {
                 <Button
                   onClick={() => exportJson(
                     originalResults.step1_extracted_data, 
-                    'step1_extracted_data.json'
+                    'extracted_data.json'
                   )}
                   variant="outline"
                 >
@@ -125,7 +116,8 @@ const DataEditor: React.FC = () => {
                 <Button
                   onClick={() => exportText(
                     originalResults.step2_restructured_text, 
-                    'step2_restructured.txt'
+                    'restructured_resume.txt',
+                    originalResults.step1_extracted_data
                   )}
                   variant="outline"
                 >
@@ -139,37 +131,14 @@ const DataEditor: React.FC = () => {
         <TabsContent value="step3">
           <Card>
             <CardHeader>
-              <CardTitle>✨ Step 3: Final Data (Editable)</CardTitle>
+              <CardTitle>✨ Step 3: Final Data (User-Friendly Editor)</CardTitle>
             </CardHeader>
             <CardContent>
-              <Textarea
-                value={jsonString}
-                onChange={(e) => handleJsonChange(e.target.value)}
-                className={`min-h-[400px] font-mono text-sm ${
-                  !isValidJson ? 'border-red-500' : ''
-                }`}
-                placeholder="Edit your resume data here..."
+              <ResumeFormEditor 
+                data={editedData} 
+                onSave={saveJsonChanges}
+                onExport={() => exportJson(editedData, 'final_resume_data.json')}
               />
-              {!isValidJson && (
-                <p className="text-red-500 text-sm mt-2">
-                  ⚠️ Invalid JSON format. Please check your syntax.
-                </p>
-              )}
-              <div className="mt-4 flex gap-2">
-                <Button
-                  onClick={saveJsonChanges}
-                  disabled={!isValidJson}
-                  variant="default"
-                >
-                  💾 Save Changes
-                </Button>
-                <Button
-                  onClick={() => exportJson(editedData, 'step3_final_data.json')}
-                  variant="outline"
-                >
-                  📥 Export Step 3 Data (JSON)
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -189,7 +158,8 @@ const DataEditor: React.FC = () => {
                 <Button
                   onClick={() => exportText(
                     originalResults.step3_final_formatted, 
-                    'formatted_resume.txt'
+                    'formatted_resume.txt',
+                    editedData
                   )}
                   variant="outline"
                 >
@@ -198,7 +168,7 @@ const DataEditor: React.FC = () => {
                 <Button
                   onClick={() => exportJson(
                     originalResults, 
-                    'all_results.json'
+                    'all_processing_results.json'
                   )}
                   variant="outline"
                 >

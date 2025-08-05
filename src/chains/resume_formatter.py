@@ -100,6 +100,9 @@ class ResumeFormatter:
             if data.get('languages') is None:
                 data['languages'] = []
             
+            # Convert date fields from integers to strings
+            self._convert_date_fields(data)
+            
             return ResumeData(**data)
         except Exception as e:
             print(f"Error parsing Gemini response: {e}")
@@ -243,4 +246,32 @@ class ResumeFormatter:
             enhanced_text=enhanced_text,
             formatted_resume=formatted_resume,
             processing_metadata=processing_metadata
-        ) 
+        )
+    
+    def _convert_date_fields(self, data: dict):
+        """Convert date fields from integers to strings."""
+        print("🔄 Converting date fields from integers to strings...")
+        
+        # Convert experience dates
+        if 'experience' in data and isinstance(data['experience'], list):
+            for exp in data['experience']:
+                if isinstance(exp, dict):
+                    if 'start_date' in exp and isinstance(exp['start_date'], int):
+                        exp['start_date'] = str(exp['start_date'])
+                        print(f"✅ Converted experience start_date: {exp['start_date']}")
+                    if 'end_date' in exp and isinstance(exp['end_date'], int):
+                        exp['end_date'] = str(exp['end_date'])
+                        print(f"✅ Converted experience end_date: {exp['end_date']}")
+        
+        # Convert education dates
+        if 'education' in data and isinstance(data['education'], list):
+            for edu in data['education']:
+                if isinstance(edu, dict):
+                    if 'start_date' in edu and isinstance(edu['start_date'], int):
+                        edu['start_date'] = str(edu['start_date'])
+                        print(f"✅ Converted education start_date: {edu['start_date']}")
+                    if 'end_date' in edu and isinstance(edu['end_date'], int):
+                        edu['end_date'] = str(edu['end_date'])
+                        print(f"✅ Converted education end_date: {edu['end_date']}")
+        
+        print("✅ Date field conversion completed")

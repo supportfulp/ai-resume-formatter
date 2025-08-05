@@ -8,7 +8,12 @@ import { maskApiKey, formatElapsedTime } from '../../lib/utils'
 import { processingAPI } from '../../services/api'
 import { toast } from 'sonner'
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  selectedTab: string
+  onTabChange: (tab: string) => void
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ selectedTab, onTabChange }) => {
   const { user, apiKey, apiKeySetupTime, demoMode } = useAuthStore()
   const { processingComplete, editedData, currentFilename } = useProcessingStore()
 
@@ -16,7 +21,15 @@ const Sidebar: React.FC = () => {
     if (!editedData) return
 
     try {
-      const filename = `resume_${currentFilename.replace('.pdf', '')}.docx`
+      // Create a better filename using the person's name if available
+      let filename = `resume_${currentFilename.replace('.pdf', '')}.docx`
+      
+      // If we have the person's name, use it in the filename
+      if (editedData.name && editedData.name !== 'Unknown' && editedData.name !== 'Resume Candidate') {
+        const cleanName = editedData.name.replace(/[^a-zA-Z\s]/g, '').trim().replace(/\s+/g, '_')
+        filename = `${cleanName}_Resume.docx`
+      }
+      
       const blob = await processingAPI.exportDocx(editedData, filename)
       
       // Create download link
@@ -38,7 +51,14 @@ const Sidebar: React.FC = () => {
   const handleQuickExportJson = () => {
     if (!editedData) return
 
-    const filename = `resume_data_${currentFilename.replace('.pdf', '')}.json`
+    // Create a better filename using the person's name if available
+    let filename = `resume_data_${currentFilename.replace('.pdf', '')}.json`
+    
+    // If we have the person's name, use it in the filename
+    if (editedData.name && editedData.name !== 'Unknown' && editedData.name !== 'Resume Candidate') {
+      const cleanName = editedData.name.replace(/[^a-zA-Z\s]/g, '').trim().replace(/\s+/g, '_')
+      filename = `${cleanName}_Resume_Data.json`
+    }
     const blob = new Blob([JSON.stringify(editedData, null, 2)], { 
       type: 'application/json' 
     })
@@ -87,6 +107,57 @@ const Sidebar: React.FC = () => {
               🔧 Demo Mode - No persistent storage
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Navigation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">🧭 Navigation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <nav className="space-y-2">
+            <button
+              onClick={() => onTabChange('processing')}
+              className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
+                selectedTab === 'processing'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-accent hover:text-accent-foreground'
+              }`}
+            >
+              📁 Resume Processing
+            </button>
+            <button
+              onClick={() => onTabChange('prompts')}
+              className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
+                selectedTab === 'prompts'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-accent hover:text-accent-foreground'
+              }`}
+            >
+              🔧 Prompt Management
+            </button>
+            <button
+              onClick={() => onTabChange('history')}
+              className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
+                selectedTab === 'history'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-accent hover:text-accent-foreground'
+              }`}
+            >
+              📊 Processing History
+            </button>
+            <button
+              onClick={() => onTabChange('dashboard')}
+              className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
+                selectedTab === 'dashboard'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-accent hover:text-accent-foreground'
+              }`}
+            >
+              💰 Consumption Dashboard
+            </button>
+          </nav>
         </CardContent>
       </Card>
 

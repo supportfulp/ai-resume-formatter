@@ -40,31 +40,62 @@ const ProcessingSteps: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>🔄 Processing Steps</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            🔄
+          </div>
+          Processing Steps
+        </CardTitle>
         {isProcessing && (
-          <div className="space-y-2">
-            <Progress value={progress} />
-            <p className="text-sm text-gray-600">
-              Step {completedSteps + 1} of {processingSteps.length}
-            </p>
+          <div className="space-y-3">
+            <Progress value={progress} className="h-2" />
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Progress: {completedSteps} of {processingSteps.length} completed</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
           </div>
         )}
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {processingSteps.map((step, index) => (
-            <div key={step.step} className="flex items-center space-x-3">
-              {getStepIcon(step.status)}
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">
-                    Step {step.step}: {step.name}
-                  </h4>
-                  {getStepBadge(step.status)}
+            <div 
+              key={step.step} 
+              className={`p-4 rounded-lg border transition-all duration-200 ${
+                step.status === 'completed' 
+                  ? 'bg-green-50 border-green-200' 
+                  : step.status === 'processing'
+                  ? 'bg-blue-50 border-blue-200'
+                  : step.status === 'error'
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-gray-50 border-gray-200'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-full ${
+                  step.status === 'completed' 
+                    ? 'bg-green-100' 
+                    : step.status === 'processing'
+                    ? 'bg-blue-100'
+                    : step.status === 'error'
+                    ? 'bg-red-100'
+                    : 'bg-gray-100'
+                }`}>
+                  {getStepIcon(step.status)}
                 </div>
-                {step.error && (
-                  <p className="text-sm text-red-500 mt-1">{step.error}</p>
-                )}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-gray-900">
+                      Step {step.step}: {step.name}
+                    </h4>
+                    {getStepBadge(step.status)}
+                  </div>
+                  {step.error && (
+                    <p className="text-sm text-red-600 mt-1 bg-red-50 p-2 rounded">
+                      ⚠️ {step.error}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           ))}

@@ -309,9 +309,8 @@ async def export_docx(request: ExportDocxRequest):
         
         try:
             # Generate DOCX using existing generator
-            generator = ResumeDocumentGenerator(request.data)
-            generator.create_document()
-            generator.save_document(temp_path)
+            generator = ResumeDocumentGenerator()  # Initialize with default page_height
+            generator.generate_docx(json.dumps(request.data), temp_path)
             
             # Return file
             return FileResponse(
@@ -439,10 +438,10 @@ if __name__ == "__main__":
     print("🚀 Starting Resume Processor API Server...")
     print("📍 API will be available at: http://localhost:8000")
     print("📖 API docs available at: http://localhost:8000/docs")
-    
+
     uvicorn.run(
         "api_server:app",
-        host="0.0.0.0", 
+        host="0.0.0.0",
         port=8000,
-        reload=True
+        reload=True,
     )
