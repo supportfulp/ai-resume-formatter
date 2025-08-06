@@ -81,41 +81,40 @@ services:
     restart: unless-stopped
     networks:
       - resume-network
-    profiles:
-      - development
 
-  # React Frontend (Production)
-  react-app-prod:
-    build:
-      context: ./resume-processor-react
-      dockerfile: Dockerfile.prod
-    container_name: resume-processor-react-prod
-    ports:
-      - "3000:80"
-    depends_on:
-      - api-server
-    restart: unless-stopped
-    networks:
-      - resume-network
-    profiles:
-      - production
 
-  # Optional: Add a reverse proxy with nginx for production
-  nginx:
-    image: nginx:alpine
-    container_name: resume-processor-nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - api-server
-      - react-app
-    restart: unless-stopped
-    networks:
-      - resume-network
-    profiles:
-      - production
+  # # React Frontend (Production)
+  # react-app-prod:
+  #   build:
+  #     context: ./resume-processor-react
+  #     dockerfile: Dockerfile.prod
+  #   container_name: resume-processor-react-prod
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - api-server
+  #   restart: unless-stopped
+  #   networks:
+  #     - resume-network
+  #   profiles:
+  #     - production
+
+  # # Optional: Add a reverse proxy with nginx for production
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: resume-processor-nginx
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - api-server
+  #     - react-app
+  #   restart: unless-stopped
+  #   networks:
+  #     - resume-network
+  #   profiles:
+  #     - production
 
 networks:
   resume-network:
