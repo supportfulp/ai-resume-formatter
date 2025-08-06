@@ -28,7 +28,7 @@ services:
   api-server:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile
     container_name: resume-processor-api
     ports:
       - "8000:8000"
