@@ -1,293 +1,228 @@
-# Docker Deployment Guide
+# Docker Setup for Resume Processor
 
-This guide explains how to deploy the Resume Processing Tool using Docker and Docker Compose.
+This project now uses a modern architecture with:
+- **React Frontend** - Modern UI with TypeScript and Tailwind CSS
+- **FastAPI Backend** - RESTful API server
+- **PostgreSQL Database** - Data persistence
+- **Nginx** - Reverse proxy (production)
 
-## 🐳 Quick Start
-
-### Prerequisites
-- Docker
-- Docker Compose
-- Google API Key for Gemini
-
-### 1. Set Environment Variables
-Create a `.env` file in the project root:
-```bash
-GOOGLE_API_KEY=your_google_api_key_here
-```
-
-### 2. Build and Run
-```bash
-# Development mode (with source code mounting)
-docker-compose up --build
-
-# Production mode (with nginx reverse proxy)
-docker-compose --profile production up --build
-```
-
-### 3. Access the Application
-- **Development**: http://localhost:8501
-- **Production**: http://localhost:80
-
-## 🏗️ Architecture
-
-### Development Setup
-```
-┌─────────────────┐
-│   Your Browser  │
-└─────────┬───────┘
-          │
-          ▼
-┌─────────────────┐
-│  Streamlit App  │
-│   Port: 8501    │
-└─────────────────┘
-```
-
-### Production Setup
-```
-┌─────────────────┐
-│   Your Browser  │
-└─────────┬───────┘
-          │
-          ▼
-┌─────────────────┐
-│     Nginx       │
-│   Port: 80      │
-└─────────┬───────┘
-          │
-          ▼
-┌─────────────────┐
-│  Streamlit App  │
-│   Port: 8501    │
-└─────────────────┘
-```
-
-## 📁 File Structure
-
-```
-├── Dockerfile              # Main application container
-├── docker-compose.yml      # Multi-service orchestration
-├── nginx.conf             # Nginx reverse proxy config
-├── .dockerignore          # Docker build exclusions
-├── .env                   # Environment variables (create this)
-├── streamlit_app.py       # Main Streamlit application
-├── src/                   # Application source code
-├── requirements.txt       # Python dependencies
-└── output/               # Persistent output directory
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GOOGLE_API_KEY` | Google API key for Gemini | Yes |
-
-### Ports
-| Service | Port | Description |
-|---------|------|-------------|
-| Streamlit | 8501 | Main application |
-| Nginx | 80 | Reverse proxy (production) |
-
-### Volumes
-| Volume | Purpose |
-|--------|---------|
-| `./src:/app/src` | Source code mounting (development) |
-| `./output:/app/output` | Persistent output storage |
-| `./streamlit_app.py:/app/streamlit_app.py` | App mounting (development) |
-
-## 🚀 Deployment Options
+## Quick Start
 
 ### Development Mode
 ```bash
-# Start with source code mounting for live development
-docker-compose up --build
+# Start with development React app (hot reload enabled)
+./start_docker.sh development
 
-# View logs
-docker-compose logs -f resume-processor
-
-# Stop services
-docker-compose down
+# Or manually:
+docker-compose --profile development up -d postgres api-server react-app
 ```
+
+**Access URLs:**
+- React App: http://localhost:3000
+- API Server: http://localhost:8000
+- Database: localhost:5432
 
 ### Production Mode
 ```bash
-# Start with nginx reverse proxy
-docker-compose --profile production up --build
+# Start with production React app (built and optimized)
+./start_docker.sh production
 
-# Run in background
-docker-compose --profile production up -d --build
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose --profile production down
+# Or manually:
+docker-compose --profile production up -d
 ```
 
-### Custom Configuration
+**Access URLs:**
+- Application: http://localhost (via nginx proxy)
+- Database: localhost:5432
+
+### Full Stack (with nginx proxy)
 ```bash
-# Use custom environment file
-docker-compose --env-file .env.production up
+# Start all services including nginx reverse proxy
+./start_docker.sh full
 
-# Override ports
-docker-compose up -p 9001:8501
-
-# Scale services (if needed)
-docker-compose up --scale resume-processor=2
+# Or manually:
+docker-compose up -d
 ```
 
-## 🔍 Monitoring & Health Checks
+**Access URLs:**
+- Application: http://localhost (nginx proxy)
+- React App: http://localhost:3000
+- API Server: http://localhost:8000
+- Database: localhost:5432
 
-### Health Check Endpoints
-- **Streamlit**: http://localhost:8501/_stcore/health
-- **Nginx**: http://localhost/health
+## Services
 
-### Logs
-```bash
-# View all logs
-docker-compose logs
+### 1. PostgreSQL Database (`postgres`)
+- **Port:** 5432
+- **Database:** resume_processor
+- **User:** postgres
+- **Password:** password
+- **Health Check:** Automatic with retry logic
 
-# Follow logs
-docker-compose logs -f
+### 2. FastAPI Backend (`api-server`)
+- **Port:** 8000
+- **Framework:** FastAPI with uvicorn
+- **Features:** 
+  - RESTful API endpoints
+  - File upload processing
+  - Database integration
+  - Authentication
+  - Token usage tracking
+- **Health Check:** `/health` endpoint
 
-# View specific service logs
-docker-compose logs resume-processor
-docker-compose logs nginx
+### 3. React Frontend (`react-app` / `react-app-prod`)
+- **Development Port:** 3000 (with hot reload)
+- **Production Port:** 80 (built and served by nginx)
+- **Framework:** React 18 with TypeScript
+- **Styling:** Tailwind CSS
+- **State Management:** Zustand
+- **API Integration:** Axios with automatic proxy support
+
+### 4. Nginx Reverse Proxy (`nginx`)
+- **Port:** 80
+- **Features:**
+  - Routes `/api/*` to FastAPI backend
+  - Routes all other requests to React app
+  - Security headers
+  - Gzip compression
+  - Health check endpoint
+
+## Docker Compose Profiles
+
+### Development Profile
+- `postgres` - Database
+- `api-server` - FastAPI backend
+- `react-app` - Development React app with hot reload
+
+### Production Profile
+- `postgres` - Database
+- `api-server` - FastAPI backend
+- `react-app-prod` - Production React app (built)
+- `nginx` - Reverse proxy
+
+## Environment Variables
+
+### API Server
+```env
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=resume_processor
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
+PYTHONPATH=/app
 ```
 
-### Container Status
-```bash
-# Check container status
-docker-compose ps
-
-# Check resource usage
-docker stats
+### React App
+```env
+REACT_APP_API_URL=http://localhost:8000  # Development only
+CHOKIDAR_USEPOLLING=true                 # Development only
 ```
 
-## 🛠️ Troubleshooting
+## Development Workflow
+
+1. **Start services:**
+   ```bash
+   ./start_docker.sh development
+   ```
+
+2. **Make changes to code:**
+   - React changes auto-reload at http://localhost:3000
+   - API changes auto-reload at http://localhost:8000
+
+3. **View logs:**
+   ```bash
+   docker-compose logs -f [service-name]
+   ```
+
+4. **Stop services:**
+   ```bash
+   docker-compose down
+   ```
+
+## Production Deployment
+
+1. **Build and start production:**
+   ```bash
+   ./start_docker.sh production
+   ```
+
+2. **Access the application:**
+   - Main app: http://localhost
+   - API docs: http://localhost/api/docs
+
+3. **Monitor logs:**
+   ```bash
+   docker-compose logs -f
+   ```
+
+## Troubleshooting
 
 ### Common Issues
 
-#### 1. Port Already in Use
+1. **Port conflicts:**
+   ```bash
+   # Check what's using the ports
+   lsof -i :3000
+   lsof -i :8000
+   lsof -i :5432
+   ```
+
+2. **Database connection issues:**
+   ```bash
+   # Check database logs
+   docker-compose logs postgres
+   ```
+
+3. **React app not loading:**
+   ```bash
+   # Check React app logs
+   docker-compose logs react-app
+   ```
+
+4. **API server not responding:**
+   ```bash
+   # Check API server logs
+   docker-compose logs api-server
+   ```
+
+### Reset Everything
 ```bash
-# Check what's using the port
-lsof -i :8501
+# Stop and remove all containers, networks, and volumes
+docker-compose down -v
 
-# Kill the process or change port in docker-compose.yml
+# Remove all images
+docker-compose down --rmi all
+
+# Start fresh
+./start_docker.sh development
 ```
 
-#### 2. Permission Issues
-```bash
-# Fix output directory permissions
-sudo chown -R $USER:$USER ./output
-chmod 755 ./output
+## File Structure
+
+```
+resume_project/
+├── docker-compose.yml          # Main compose file
+├── Dockerfile.api              # FastAPI backend Dockerfile
+├── start_docker.sh             # Convenience script
+├── nginx.conf                  # Nginx proxy configuration
+├── resume-processor-react/
+│   ├── Dockerfile              # Development React Dockerfile
+│   ├── Dockerfile.prod         # Production React Dockerfile
+│   └── nginx.conf              # React app nginx config
+└── ...
 ```
 
-#### 3. API Key Issues
-```bash
-# Verify environment variable
-docker-compose exec resume-processor env | grep GOOGLE_API_KEY
+## API Endpoints
 
-# Restart with new environment
-docker-compose down
-docker-compose up --build
-```
+When running behind nginx proxy, API endpoints are available at:
+- `http://localhost/api/auth/*` - Authentication
+- `http://localhost/api/process/*` - Resume processing
+- `http://localhost/api/history/*` - Processing history
+- `http://localhost/api/prompts/*` - Custom prompts
+- `http://localhost/api/tokens/*` - Token usage
+- `http://localhost/api/export/*` - Document export
 
-#### 4. Build Failures
-```bash
-# Clean build
-docker-compose down
-docker system prune -f
-docker-compose up --build --force-recreate
-```
-
-### Debug Mode
-```bash
-# Run with debug output
-docker-compose up --build --verbose
-
-# Access container shell
-docker-compose exec resume-processor bash
-```
-
-## 🔒 Security Considerations
-
-### Production Security
-1. **Use HTTPS**: Configure SSL certificates in nginx
-2. **Environment Variables**: Never commit `.env` files
-3. **Network Security**: Use Docker networks for service isolation
-4. **User Permissions**: Container runs as non-root user
-5. **Security Headers**: Nginx includes security headers
-
-### Security Headers (Nginx)
-- X-Frame-Options: SAMEORIGIN
-- X-XSS-Protection: 1; mode=block
-- X-Content-Type-Options: nosniff
-- Content-Security-Policy: configured
-
-## 📊 Performance Optimization
-
-### Resource Limits
-Add to `docker-compose.yml`:
-```yaml
-services:
-  resume-processor:
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
-        reservations:
-          memory: 1G
-          cpus: '0.5'
-```
-
-### Caching
-- Docker layer caching for faster builds
-- Streamlit caching for processed results
-- Nginx caching for static assets
-
-## 🔄 CI/CD Integration
-
-### GitHub Actions Example
-```yaml
-name: Deploy to Production
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Deploy with Docker Compose
-        run: |
-          docker-compose --profile production up -d --build
-```
-
-## 📝 Maintenance
-
-### Regular Tasks
-1. **Update Dependencies**: `docker-compose build --no-cache`
-2. **Clean Up**: `docker system prune -f`
-3. **Backup Data**: Backup `./output` directory
-4. **Monitor Logs**: Check for errors regularly
-5. **Security Updates**: Update base images periodically
-
-### Backup Strategy
-```bash
-# Backup output directory
-tar -czf backup-$(date +%Y%m%d).tar.gz ./output
-
-# Restore backup
-tar -xzf backup-20231201.tar.gz
-```
-
-## 🆘 Support
-
-For issues related to:
-- **Docker**: Check Docker logs and documentation
-- **Streamlit**: Check Streamlit documentation
-- **Application**: Check application logs and error messages
-- **API**: Verify Google API key and quotas 
+In development mode, use direct API server URLs:
+- `http://localhost:8000/auth/*`
+- `http://localhost:8000/process/*`
+- etc. 

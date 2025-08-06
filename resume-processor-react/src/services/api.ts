@@ -1,7 +1,8 @@
 import axios from 'axios'
 import { ApiResponse, User, ProcessingResult, ProcessingHistory, CustomPrompt, TokenUsage } from '../types'
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000'
+// Use relative URL when running behind nginx proxy, otherwise use environment variable
+const API_BASE_URL = process.env.NODE_ENV === 'production' ? '/api' : (process.env.REACT_APP_API_URL || 'http://localhost:8000')
 
 const api = axios.create({
   baseURL: API_BASE_URL,

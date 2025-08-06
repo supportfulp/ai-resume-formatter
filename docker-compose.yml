@@ -24,12 +24,14 @@ services:
     networks:
       - resume-network
 
-  # Resume Processor App
-  resume-processor:
-    build: .
-    container_name: resume-processor-app
+  # FastAPI Backend
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: resume-processor-api
     ports:
-      - "8501:8501"
+      - "8000:8000"
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
@@ -40,9 +42,9 @@ services:
     volumes:
       # Mount source code for development (comment out for production)
       - ./src:/app/src
-      - ./streamlit_app.py:/app/streamlit_app.py
+      - ./api_server.py:/app/api_server.py
       - ./database.py:/app/database.py
-      - ./requirements.txt:/app/requirements.txt
+      - ./api_requirements.txt:/app/requirements.txt
       # Mount output directory for persistent storage
       - ./output:/app/output
     depends_on:
@@ -50,13 +52,53 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
       - resume-network
+
+  # React Frontend
+  react-app:
+    build:
+      context: ./resume-processor-react
+      dockerfile: Dockerfile
+    container_name: resume-processor-react
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      # Mount source code for development (comment out for production)
+      - ./resume-processor-react/src:/app/src
+      - ./resume-processor-react/public:/app/public
+      - ./resume-processor-react/package.json:/app/package.json
+    depends_on:
+      - api-server
+    restart: unless-stopped
+    networks:
+      - resume-network
+    profiles:
+      - development
+
+  # React Frontend (Production)
+  react-app-prod:
+    build:
+      context: ./resume-processor-react
+      dockerfile: Dockerfile.prod
+    container_name: resume-processor-react-prod
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-server
+    restart: unless-stopped
+    networks:
+      - resume-network
+    profiles:
+      - production
 
   # Optional: Add a reverse proxy with nginx for production
   nginx:
@@ -67,7 +109,8 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - resume-processor
+      - api-server
+      - react-app
     restart: unless-stopped
     networks:
       - resume-network
