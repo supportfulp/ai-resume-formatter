@@ -124,6 +124,23 @@ class ResumeDocumentGenerator:
         for summ in summary:
             sum_para = skills_cell.add_paragraph(summ)
             sum_para.runs[0].font.name = 'Arial'
+        
+        comm_skills = self.resume_data['communcation_skills']
+        if comm_skills:
+            
+            comm_para = skills_cell.add_paragraph(comm_skills)
+            comm_para.runs[0].font.name = 'Arial'
+            comm_para.paragraph_format.space_before = Pt(0)
+            comm_para.paragraph_format.space_after = Pt(0.5)
+
+        languages = self.resume_data['languages']
+        if languages:
+            # Join all languages on one line with commas
+            languages_text = ', '.join(languages) if languages else ''
+            lang_para = skills_cell.add_paragraph(languages_text)
+            lang_para.runs[0].font.name = 'Arial'
+            lang_para.paragraph_format.space_before = Pt(0)
+            lang_para.paragraph_format.space_after = Pt(0.5)
 
         # Key Skills section
         skills_heading = skills_cell.add_paragraph()
@@ -208,19 +225,28 @@ class ResumeDocumentGenerator:
         for edu in self.resume_data['education']:
             # Format education entry
             start_date = edu.get('start_date', '') or edu.get('dates', '') or edu.get('end_date', '') or 'N/A'
-            edu_year = edu_cell.add_paragraph(str(start_date))
-            if edu_year.runs:
-                edu_year.runs[0].font.bold = True
-                edu_year.runs[0].font.italic = True
-                edu_year.runs[0].font.name = 'Arial'
-
-            edu_year.paragraph_format.space_before = Pt(0)
-            edu_year.paragraph_format.space_after = Pt(0.5)
-
-            edu_text = f"{edu['degree']}, {edu['institution']}"
+            
+            # Combine year and degree on same line
+            edu_text = f"{start_date}  {edu['degree']}, {edu['institution']}"
             edu_para = edu_cell.add_paragraph(edu_text)
-            edu_para.runs[0].font.name = 'Arial'
-            edu_para.paragraph_format.space_before = Pt(0.5)
+            
+            # Make the year bold and italic
+            if edu_para.runs:
+                # Split the text to format year separately
+                year_part = str(start_date)
+                degree_part = f"  {edu['degree']}, {edu['institution']}"
+                
+                # Clear the paragraph and add formatted text
+                edu_para.clear()
+                year_run = edu_para.add_run(year_part)
+                year_run.font.bold = True
+                year_run.font.name = 'Arial'
+                year_run.font.color.rgb = RGBColor(64, 64, 64)
+                
+                degree_run = edu_para.add_run(degree_part)
+                degree_run.font.name = 'Arial'
+            
+            edu_para.paragraph_format.space_before = Pt(0)
             edu_para.paragraph_format.space_after = Pt(0.5)
     
     def generate_docx(self, request_json, output_file):
@@ -236,6 +262,7 @@ class ResumeDocumentGenerator:
         """
         # Parse JSON data
         self.resume_data = json.loads(request_json)
+        print("self.resume_data", self.resume_data)
         
         # Set up document
         self._setup_document()

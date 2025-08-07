@@ -41,6 +41,7 @@ class ResumeData(BaseModel):
     certifications: List[str] = []
     languages: List[str] = []
     projects: Optional[List[Dict[str, Any]]] = None
+    communcation_skills: Optional[str] = None
 
 
 class ResumeProcessingRequest(BaseModel):

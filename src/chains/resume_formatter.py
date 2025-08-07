@@ -60,54 +60,54 @@ class ResumeFormatter:
     
     def _extract_structured_data(self, text: str) -> ResumeData:
         """Extract structured data from resume text."""
-        try:
-            result = self.extract_chain.invoke({"resume_text": text})
-            print(f"Raw Gemini output: {result}")
-            
-            # Store usage metadata for later access
-            self.last_usage_metadata = getattr(result, 'usage_metadata', {})
-            print(f"Extract usage metadata: {self.last_usage_metadata}")
-            
-            # Clean the response - remove markdown formatting if present
-            content = result.content if hasattr(result, 'content') else str(result)
-            content = content.strip()
-            
-            # Try to extract JSON from the response
-            json_match = re.search(r'\{.*\}', content, re.DOTALL)
-            if json_match:
-                json_str = json_match.group()
-                data = json.loads(json_str)
-            else:
-                # If no JSON found, try parsing the entire response
-                data = json.loads(content)
-            
-            # Clean up null values and provide defaults
-            if data.get('email') is None:
-                data['email'] = None  # This will be handled by Optional[EmailStr]
-            
-            if data.get('name') is None:
-                data['name'] = "Unknown"
-            
-            # Ensure lists are not None
-            if data.get('experience') is None:
-                data['experience'] = []
-            if data.get('education') is None:
-                data['education'] = []
-            if data.get('skills') is None:
-                data['skills'] = []
-            if data.get('certifications') is None:
-                data['certifications'] = []
-            if data.get('languages') is None:
-                data['languages'] = []
-            
-            # Convert date fields from integers to strings
-            self._convert_date_fields(data)
-            
-            return ResumeData(**data)
-        except Exception as e:
-            print(f"Error parsing Gemini response: {e}")
-            print(f"Response content: {content if 'content' in locals() else 'No content'}")
-            raise ValueError(f"Failed to extract structured data: {e}")
+        # try:
+        result = self.extract_chain.invoke({"resume_text": text})
+        print(f"Raw Gemini output: {result}")
+        
+        # Store usage metadata for later access
+        self.last_usage_metadata = getattr(result, 'usage_metadata', {})
+        print(f"Extract usage metadata: {self.last_usage_metadata}")
+        
+        # Clean the response - remove markdown formatting if present
+        content = result.content if hasattr(result, 'content') else str(result)
+        content = content.strip()
+        
+        # Try to extract JSON from the response
+        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+        if json_match:
+            json_str = json_match.group()
+            data = json.loads(json_str)
+        else:
+            # If no JSON found, try parsing the entire response
+            data = json.loads(content)
+        
+        # Clean up null values and provide defaults
+        if data.get('email') is None:
+            data['email'] = None  # This will be handled by Optional[EmailStr]
+        
+        if data.get('name') is None:
+            data['name'] = "Unknown"
+        
+        # Ensure lists are not None
+        if data.get('experience') is None:
+            data['experience'] = []
+        if data.get('education') is None:
+            data['education'] = []
+        if data.get('skills') is None:
+            data['skills'] = []
+        if data.get('certifications') is None:
+            data['certifications'] = []
+        if data.get('languages') is None:
+            data['languages'] = []
+        
+        # Convert date fields from integers to strings
+        self._convert_date_fields(data)
+        
+        return ResumeData(**data)
+        # except Exception as e:
+        #     print(f"Error parsing Gemini response: {e}")
+        #     print(f"Response content: {content if 'content' in locals() else 'No content'}")
+        #     raise ValueError(f"Failed to extract structured data: {e}")
     
     def _enhance_content(self, text: str, target_role: Optional[str] = None) -> str:
         """Enhance resume content."""

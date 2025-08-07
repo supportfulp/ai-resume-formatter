@@ -16,6 +16,7 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
         "phone": "phone number or null",
         "location": "City, State/Country or null",
         "summary": "Professional summary or null",
+        "communcation_skills": "Communication skills or null",
         "reference_number": "Reference number or null",
         "experience": [
             {{

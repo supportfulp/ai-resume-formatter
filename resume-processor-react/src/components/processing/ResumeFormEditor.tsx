@@ -44,7 +44,13 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
     setHasChanges(true)
   }
 
-  const updateArrayField = (field: string, index: number, value: any) => {
+  const updateArrayField = (field: string, value: string) => {
+    // Store the raw text for editing, process to array only when saving
+    setFormData((prev: any) => ({ ...prev, [`${field}_raw`]: value }))
+    setHasChanges(true)
+  }
+
+  const updateArrayItemField = (field: string, index: number, value: any) => {
     setFormData((prev: any) => {
       const newArray = [...(prev[field] || [])]
       newArray[index] = value
@@ -70,8 +76,30 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
   }
 
   const handleSave = () => {
+    // Process raw text fields into arrays before saving
+    const processedData = { ...formData }
+    
+    // Process skills
+    if (processedData.skills_raw) {
+      processedData.skills = processedData.skills_raw.split(',').map((s: string) => s.trim()).filter((s: string) => s)
+      delete processedData.skills_raw
+    }
+    
+    // Process certifications
+    if (processedData.certifications_raw) {
+      processedData.certifications = processedData.certifications_raw.split(',').map((s: string) => s.trim()).filter((s: string) => s)
+      delete processedData.certifications_raw
+    }
+    
+    // Process languages
+    if (processedData.languages_raw) {
+      processedData.languages = processedData.languages_raw.split(',').map((s: string) => s.trim()).filter((s: string) => s)
+      delete processedData.languages_raw
+    }
+    
     // Update the global state
-    Object.assign(data, formData)
+    Object.assign(data, processedData)
+    setFormData(processedData)
     setHasChanges(false)
     onSave()
     toast.success('Changes saved successfully!')
@@ -193,7 +221,7 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
                   <label className="block text-sm font-medium text-gray-700 mb-1">Company *</label>
                   <Input
                     value={exp.company || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayField('experience', index, { ...exp, company: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayItemField('experience', index, { ...exp, company: e.target.value })}
                     placeholder="Company Name"
                   />
                 </div>
@@ -201,7 +229,7 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
                   <label className="block text-sm font-medium text-gray-700 mb-1">Job Title *</label>
                   <Input
                     value={exp.title || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayField('experience', index, { ...exp, title: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayItemField('experience', index, { ...exp, title: e.target.value })}
                     placeholder="Software Engineer"
                   />
                 </div>
@@ -209,7 +237,7 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
                   <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                   <Input
                     value={exp.start_date || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayField('experience', index, { ...exp, start_date: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayItemField('experience', index, { ...exp, start_date: e.target.value })}
                     placeholder="2023"
                   />
                 </div>
@@ -217,7 +245,7 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
                   <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                   <Input
                     value={exp.end_date || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayField('experience', index, { ...exp, end_date: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayItemField('experience', index, { ...exp, end_date: e.target.value })}
                     placeholder="Present"
                   />
                 </div>
@@ -226,7 +254,7 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <Textarea
                   value={exp.description || ''}
-                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateArrayField('experience', index, { ...exp, description: e.target.value })}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateArrayItemField('experience', index, { ...exp, description: e.target.value })}
                   placeholder="Describe your role and responsibilities..."
                   rows={3}
                 />
@@ -274,7 +302,7 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
                   <label className="block text-sm font-medium text-gray-700 mb-1">Degree *</label>
                   <Input
                     value={edu.degree || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayField('education', index, { ...edu, degree: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayItemField('education', index, { ...edu, degree: e.target.value })}
                     placeholder="Bachelor of Science in Computer Science"
                   />
                 </div>
@@ -282,7 +310,7 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
                   <label className="block text-sm font-medium text-gray-700 mb-1">Institution *</label>
                   <Input
                     value={edu.institution || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayField('education', index, { ...edu, institution: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayItemField('education', index, { ...edu, institution: e.target.value })}
                     placeholder="University Name"
                   />
                 </div>
@@ -290,7 +318,7 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
                   <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                   <Input
                     value={edu.start_date || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayField('education', index, { ...edu, start_date: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayItemField('education', index, { ...edu, start_date: e.target.value })}
                     placeholder="2019"
                   />
                 </div>
@@ -298,7 +326,7 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
                   <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                   <Input
                     value={edu.end_date || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayField('education', index, { ...edu, end_date: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayItemField('education', index, { ...edu, end_date: e.target.value })}
                     placeholder="2023"
                   />
                 </div>
@@ -306,7 +334,7 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
                   <label className="block text-sm font-medium text-gray-700 mb-1">GPA</label>
                   <Input
                     value={edu.gpa || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayField('education', index, { ...edu, gpa: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateArrayItemField('education', index, { ...edu, gpa: e.target.value })}
                     placeholder="3.8/4.0"
                   />
                 </div>
@@ -325,9 +353,18 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Skills (comma-separated)</label>
             <Textarea
-              value={(formData.skills || []).join(', ')}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateField('skills', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+              value={formData.skills_raw || (Array.isArray(formData.skills) ? formData.skills.join(', ') : (formData.skills || ''))}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateArrayField('skills', e.target.value)}
               placeholder="JavaScript, React, Python, Machine Learning, Project Management"
+              rows={3}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Communication Skills</label>
+            <Textarea
+              value={formData.communcation_skills || ''}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateField('communcation_skills', e.target.value)}
+              placeholder="Public Speaking, Technical Writing, Team Leadership, Client Communication"
               rows={3}
             />
           </div>
@@ -343,8 +380,8 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Certifications (comma-separated)</label>
             <Textarea
-              value={(formData.certifications || []).join(', ')}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateField('certifications', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+              value={formData.certifications_raw || (Array.isArray(formData.certifications) ? formData.certifications.join(', ') : (formData.certifications || ''))}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateArrayField('certifications', e.target.value)}
               placeholder="AWS Certified Developer, Google Cloud Professional, PMP"
               rows={3}
             />
@@ -361,8 +398,8 @@ const ResumeFormEditor: React.FC<ResumeFormEditorProps> = ({ data, onSave, onExp
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Languages (comma-separated)</label>
             <Textarea
-              value={(formData.languages || []).join(', ')}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateField('languages', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+              value={formData.languages_raw || (Array.isArray(formData.languages) ? formData.languages.join(', ') : (formData.languages || ''))}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateArrayField('languages', e.target.value)}
               placeholder="English (Native), Spanish (Fluent), French (Intermediate)"
               rows={3}
             />

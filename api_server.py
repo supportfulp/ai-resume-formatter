@@ -302,29 +302,29 @@ async def process_resume(
 @app.post("/export/docx")
 async def export_docx(request: ExportDocxRequest):
     """Export resume data as DOCX file."""
-    try:
+    # try:
         # Create temporary file for DOCX
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
-            temp_path = tmp_file.name
-        
-        try:
-            # Generate DOCX using existing generator
-            generator = ResumeDocumentGenerator()  # Initialize with default page_height
-            generator.generate_docx(json.dumps(request.data), temp_path)
-            
-            # Return file
-            return FileResponse(
-                temp_path,
-                media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                filename=request.filename
-            )
-            
-        finally:
-            # Note: File will be cleaned up after response is sent
-            pass
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
+        temp_path = tmp_file.name
     
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    try:
+        # Generate DOCX using existing generator
+        generator = ResumeDocumentGenerator()  # Initialize with default page_height
+        generator.generate_docx(json.dumps(request.data), temp_path)
+        
+        # Return file
+        return FileResponse(
+            temp_path,
+            media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            filename=request.filename
+        )
+        
+    finally:
+        # Note: File will be cleaned up after response is sent
+        pass
+    
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
 
 # History endpoints
 @app.get("/history/{user_id}", response_model=ApiResponse)
