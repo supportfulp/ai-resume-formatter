@@ -84,7 +84,7 @@ class ResumeDocumentGenerator:
         name_run.font.size = Pt(32)
         name_run.font.name = 'Georgia'
 
-        title_para = self.document.add_paragraph("Ref#: BED1-AMD")
+        title_para = self.document.add_paragraph(self.resume_data['reference_number'])
         title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_run = title_para.runs[0]
         title_run.font.size = Pt(9)
@@ -115,23 +115,30 @@ class ResumeDocumentGenerator:
         self._add_cell_borders(main_table.cell(0, 1), ['top'])  # Experience cell
         self._add_cell_borders(main_table.cell(1, 1), ['top', 'left'])  # Education cell
         
+        
         return main_table
     
     def _add_skills_section(self, skills_cell):
         """Add the skills section to the left sidebar."""
         # Summary section
         summary = self.resume_data['summary'].split('. ')
+        skills_cell.paragraphs[0].text = ""
+        skills_spacing = skills_cell.paragraphs[0]
+        skills_spacing.paragraph_format.space_after = Pt(0)
+        skills_spacing.paragraph_format.line_spacing = 1.1
+        skills_spacing.paragraph_format.space_before = Pt(0)
         for summ in summary:
             sum_para = skills_cell.add_paragraph(summ)
+            # skills_cell.paragraphs[0].text = summ
+            # sum_para = skills_cell.paragraphs[0]
             sum_para.runs[0].font.name = 'Arial'
+            sum_para.paragraph_format.space_before = Pt(0)
         
         comm_skills = self.resume_data['communcation_skills']
         if comm_skills:
             
             comm_para = skills_cell.add_paragraph(comm_skills)
             comm_para.runs[0].font.name = 'Arial'
-            comm_para.paragraph_format.space_before = Pt(0)
-            comm_para.paragraph_format.space_after = Pt(0.5)
 
         languages = self.resume_data['languages']
         if languages:
@@ -139,8 +146,6 @@ class ResumeDocumentGenerator:
             languages_text = ', '.join(languages) if languages else ''
             lang_para = skills_cell.add_paragraph(languages_text)
             lang_para.runs[0].font.name = 'Arial'
-            lang_para.paragraph_format.space_before = Pt(0)
-            lang_para.paragraph_format.space_after = Pt(0.5)
 
         # Key Skills section
         skills_heading = skills_cell.add_paragraph()
@@ -159,13 +164,26 @@ class ResumeDocumentGenerator:
     
     def _add_experience_section(self, exp_cell):
         """Add the experience section to the main content area."""
+        
+        # Add spacing paragraph first
+        exp_cell.paragraphs[0].text = ""
+        exp_spacing = exp_cell.paragraphs[0]
+        exp_spacing.paragraph_format.space_after = Pt(0)
+        exp_spacing.paragraph_format.line_spacing = 1.1
+        exp_spacing.paragraph_format.space_before = Pt(0)
+        
+        # Create new Experience heading paragraph
         exp_heading = exp_cell.add_paragraph("Experience")
+        # exp_cell.paragraphs[0].text = "Experience"
+        # exp_heading = exp_cell.paragraphs[0]
         exp_heading.runs[0].font.bold = True
         exp_heading.runs[0].font.size = Pt(14)
         exp_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
         exp_heading.runs[0].font.name = 'Georgia'
-        exp_heading.paragraph_format.space_after = Pt(1.5)
-
+        exp_heading.paragraph_format.space_after = Pt(0)
+        # exp_heading.paragraph_format.line_spacing = 1.1
+        exp_heading.paragraph_format.space_before = Pt(0)  # Reset since we're using spacing para above
+        
         # Loop through experience data
         for exp in self.resume_data['experience']:
             # Format dates
@@ -213,7 +231,14 @@ class ResumeDocumentGenerator:
     
     def _add_education_section(self, edu_cell):
         """Add the education section to the bottom area."""
+        edu_cell.paragraphs[0].text = ""
+        edu_spacing = edu_cell.paragraphs[0]
+        edu_spacing.paragraph_format.space_after = Pt(0)
+        edu_spacing.paragraph_format.line_spacing = 1.1
+        edu_spacing.paragraph_format.space_before = Pt(0)
         edu_heading = edu_cell.add_paragraph("Education")
+        # edu_cell.paragraphs[0].text = "Education"
+        # edu_heading = edu_cell.paragraphs[0]
         edu_heading.runs[0].font.bold = True
         edu_heading.runs[0].font.size = Pt(14)
         edu_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
