@@ -4,7 +4,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import { authAPI } from '../../services/api'
+import { authAPI, healthAPI } from '../../services/api'
 import { useAuthStore } from '../../store/useAuthStore'
 import { toast } from 'sonner'
 
@@ -20,6 +20,17 @@ const LoginForm: React.FC = () => {
 
   const loginForm = useForm<LoginFormData>()
   const registerForm = useForm<LoginFormData>()
+
+  const testConnection = async () => {
+    try {
+      toast.info('Testing connection...')
+      await healthAPI.check()
+      toast.success('Connection successful!')
+    } catch (error) {
+      console.error('Connection test failed:', error)
+      toast.error('Connection failed! Check console for details.')
+    }
+  }
 
   const onLogin = async (data: LoginFormData) => {
     setIsLoading(true)
@@ -122,6 +133,16 @@ const LoginForm: React.FC = () => {
                     </Button>
                   </div>
                 </form>
+                <div className="mt-4 pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={testConnection}
+                    className="w-full"
+                  >
+                    🔍 Test API Connection
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

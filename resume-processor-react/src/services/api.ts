@@ -4,6 +4,11 @@ import { ApiResponse, User, ProcessingResult, ProcessingHistory, CustomPrompt, T
 // Use relative URL when running behind nginx proxy, otherwise use environment variable
 const API_BASE_URL = process.env.NODE_ENV === 'production' ? '/api' : (process.env.REACT_APP_API_URL || 'http://localhost:8000')
 
+// Debug logging
+console.log('NODE_ENV:', process.env.NODE_ENV)
+console.log('REACT_APP_API_URL:', process.env.REACT_APP_API_URL)
+console.log('API_BASE_URL:', API_BASE_URL)
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -109,6 +114,21 @@ export const tokenAPI = {
   getTokenStats: async (userId: number): Promise<ApiResponse<any>> => {
     const response = await api.get(`/tokens/stats/${userId}`)
     return response.data
+  },
+}
+
+// Health check for debugging
+export const healthAPI = {
+  check: async (): Promise<any> => {
+    try {
+      console.log('Testing health endpoint at:', API_BASE_URL + '/health')
+      const response = await api.get('/health')
+      console.log('Health check response:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('Health check failed:', error)
+      throw error
+    }
   },
 }
 
