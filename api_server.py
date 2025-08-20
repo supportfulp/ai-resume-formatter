@@ -140,6 +140,11 @@ async def login(request: LoginRequest):
         if DATABASE_AVAILABLE:
             user_data = db_manager.verify_user(request.username, request.password)
             if user_data:
+                # Convert datetime objects to strings for Pydantic model
+                if 'created_at' in user_data and user_data['created_at']:
+                    user_data['created_at'] = user_data['created_at'].isoformat()
+                if 'last_login' in user_data and user_data['last_login']:
+                    user_data['last_login'] = user_data['last_login'].isoformat()
                 user = User(**user_data)
                 return ApiResponse(success=True, data=user.dict())
         
@@ -158,6 +163,11 @@ async def register(request: RegisterRequest):
                 # Return the created user
                 user_data = db_manager.verify_user(request.username, request.password)
                 if user_data:
+                    # Convert datetime objects to strings for Pydantic model
+                    if 'created_at' in user_data and user_data['created_at']:
+                        user_data['created_at'] = user_data['created_at'].isoformat()
+                    if 'last_login' in user_data and user_data['last_login']:
+                        user_data['last_login'] = user_data['last_login'].isoformat()
                     user = User(**user_data)
                     return ApiResponse(success=True, data=user.dict())
             return ApiResponse(success=False, error="Failed to create user")
