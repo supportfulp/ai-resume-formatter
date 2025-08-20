@@ -186,12 +186,109 @@ async def verify_api_key(request: ApiKeyRequest):
     except Exception as e:
         return ApiResponse(success=False, error=str(e))
 
+class SaveApiKeyRequest(BaseModel):
+    user_id: int
+    api_key: str
+
+@app.post("/auth/save-api-key", response_model=ApiResponse)
+async def save_api_key(request: SaveApiKeyRequest):
+    """Save user's API key securely."""
+    try:
+        if not validate_api_key(request.api_key):
+            return ApiResponse(success=False, error="Invalid API key format")
+        
+        if DATABASE_AVAILABLE:
+            success = db_manager.save_api_key(request.user_id, request.api_key)
+            if success:
+                return ApiResponse(success=True, message="API key saved successfully")
+            else:
+                return ApiResponse(success=False, error="Failed to save API key")
+        else:
+            return ApiResponse(success=False, error="Database not available")
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+@app.get("/auth/get-api-key/{user_id}", response_model=ApiResponse)
+async def get_api_key(user_id: int):
+    """Get user's API key hash (for verification purposes only)."""
+    try:
+        if DATABASE_AVAILABLE:
+            api_key_hash = db_manager.get_api_key(user_id)
+            if api_key_hash:
+                # Return masked version for security
+                masked_key = "***Key is configured***"
+                return ApiResponse(success=True, data={"has_api_key": True, "masked_key": masked_key})
+            else:
+                return ApiResponse(success=True, data={"has_api_key": False, "masked_key": None})
+        else:
+            return ApiResponse(success=False, error="Database not available")
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+import secrets
+
+class CreateSessionRequest(BaseModel):
+    user_id: int
+    expires_in_hours: Optional[int] = 24
+
+class ValidateSessionRequest(BaseModel):
+    session_token: str
+
+@app.post("/auth/create-session", response_model=ApiResponse)
+async def create_session(request: CreateSessionRequest):
+    """Create a new user session."""
+    try:
+        if DATABASE_AVAILABLE:
+            # Generate secure session token
+            session_token = secrets.token_urlsafe(32)
+            success = db_manager.create_session(request.user_id, session_token, request.expires_in_hours)
+            if success:
+                return ApiResponse(success=True, data={"session_token": session_token})
+            else:
+                return ApiResponse(success=False, error="Failed to create session")
+        else:
+            return ApiResponse(success=False, error="Database not available")
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+@app.post("/auth/validate-session", response_model=ApiResponse)
+async def validate_session(request: ValidateSessionRequest):
+    """Validate session token and return user ID."""
+    try:
+        if DATABASE_AVAILABLE:
+            user_id = db_manager.validate_session(request.session_token)
+            if user_id:
+                return ApiResponse(success=True, data={"user_id": user_id, "valid": True})
+            else:
+                return ApiResponse(success=True, data={"user_id": None, "valid": False})
+        else:
+            return ApiResponse(success=False, error="Database not available")
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+@app.post("/auth/logout", response_model=ApiResponse)
+async def logout(request: ValidateSessionRequest):
+    """Logout user by invalidating session."""
+    try:
+        if DATABASE_AVAILABLE:
+            success = db_manager.delete_session(request.session_token)
+            if success:
+                return ApiResponse(success=True, message="Logged out successfully")
+            else:
+                return ApiResponse(success=False, error="Failed to logout")
+        else:
+            return ApiResponse(success=False, error="Database not available")
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
 # Resume processing endpoints
 @app.post("/process/resume", response_model=ApiResponse)
 async def process_resume(
     file: UploadFile = File(...),
     api_key: str = Form(...),
-    custom_prompt: Optional[str] = Form(None)
+    custom_prompt: Optional[str] = Form(None),
+    user_id: Optional[int] = Form(None),
+    custom_prompt_name: Optional[str] = Form(None)
 ):
     """Process resume through 3-step AI pipeline."""
     try:
@@ -298,6 +395,41 @@ async def process_resume(
                     }
                 }
             }
+            
+            # Save to database if user is logged in and database is available
+            if DATABASE_AVAILABLE and user_id:
+                try:
+                    # Save processing history
+                    metadata = {
+                        'target_role': 'Software Engineer',
+                        'template_style': 'professional',
+                        'steps_completed': 3,
+                        'prompt_used': custom_prompt_name or 'Default'
+                    }
+                    history_id = db_manager.save_processing_history(user_id, file.filename, metadata)
+                    
+                    if history_id:
+                        # Save processing result
+                        db_manager.save_processing_result(history_id, results["step3_final_data"])
+                        
+                        # Save token usage data
+                        token_data = {
+                            'input_tokens': total_tokens['input_tokens'],
+                            'output_tokens': total_tokens['output_tokens'],
+                            'total_tokens': total_tokens['total_tokens'],
+                            'input_cost_usd': input_cost,
+                            'output_cost_usd': output_cost,
+                            'total_cost_usd': total_cost,
+                            'model': 'gemini-2.5-flash'
+                        }
+                        db_manager.save_token_usage(user_id, history_id, token_data)
+                        
+                        print(f"✅ Saved processing history and token usage for user {user_id}")
+                    else:
+                        print(f"⚠️ Failed to save processing history for user {user_id}")
+                except Exception as e:
+                    print(f"⚠️ Error saving to database: {e}")
+                    # Don't fail the request if database save fails
             
             return ApiResponse(success=True, data=results)
             

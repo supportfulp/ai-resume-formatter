@@ -8,10 +8,11 @@ import { processingAPI } from '../../services/api'
 import { toast } from 'sonner'
 
 const FileUpload: React.FC = () => {
-  const { apiKey } = useAuthStore()
+  const { apiKey, user } = useAuthStore()
   const {
     currentFilename,
     selectedPrompt,
+    selectedPromptName,
     isProcessing,
     processingComplete,
     setCurrentFilename,
@@ -59,7 +60,9 @@ const FileUpload: React.FC = () => {
       const response = await processingAPI.processResume(
         acceptedFiles[0],
         apiKey,
-        selectedPrompt || undefined
+        selectedPrompt || undefined,
+        user?.id,
+        selectedPromptName || undefined
       )
 
       if (response.success && response.data) {

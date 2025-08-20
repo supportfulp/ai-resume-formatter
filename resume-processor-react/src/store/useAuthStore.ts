@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { User } from '../types'
+import { authAPI } from '../services/api'
 
 interface AuthState {
   user: User | null
@@ -8,41 +9,87 @@ interface AuthState {
   apiKey: string
   apiKeySetupTime: number | null
   demoMode: boolean
+  sessionToken: string | null
   login: (user: User) => void
   logout: () => void
-  setApiKey: (apiKey: string) => void
+  setApiKey: (apiKey: string, persist?: boolean) => Promise<void>
   setDemoMode: (demo: boolean) => void
+  setSessionToken: (token: string | null) => void
+  loadApiKey: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
       apiKey: '',
       apiKeySetupTime: null,
       demoMode: false,
+      sessionToken: null,
       login: (user) =>
         set({
           user,
           isAuthenticated: true,
         }),
-      logout: () =>
+      logout: async () => {
+        const { sessionToken } = get()
+        if (sessionToken) {
+          try {
+            await authAPI.logout(sessionToken)
+          } catch (error) {
+            console.error('Logout error:', error)
+          }
+        }
         set({
           user: null,
           isAuthenticated: false,
           apiKey: '',
           apiKeySetupTime: null,
-        }),
-      setApiKey: (apiKey) =>
+          sessionToken: null,
+        })
+      },
+      setApiKey: async (apiKey, persist = true) => {
+        const { user, demoMode } = get()
+        
         set({
           apiKey,
           apiKeySetupTime: Date.now(),
-        }),
+        })
+
+        // Save to database if not in demo mode and user is logged in
+        if (persist && !demoMode && user?.id) {
+          try {
+            await authAPI.saveApiKey(user.id, apiKey)
+          } catch (error) {
+            console.error('Failed to save API key:', error)
+          }
+        }
+      },
       setDemoMode: (demo) =>
         set({
           demoMode: demo,
         }),
+      setSessionToken: (token) =>
+        set({
+          sessionToken: token,
+        }),
+      loadApiKey: async () => {
+        const { user, demoMode } = get()
+        if (!demoMode && user?.id) {
+          try {
+            const response = await authAPI.getApiKey(user.id)
+            if (response.success && response.data?.has_api_key) {
+              // Don't set the actual key, just mark as configured
+              set({
+                apiKeySetupTime: Date.now(),
+              })
+            }
+          } catch (error) {
+            console.error('Failed to load API key status:', error)
+          }
+        }
+      },
     }),
     {
       name: 'auth-store',
@@ -50,6 +97,8 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         demoMode: state.demoMode,
+        sessionToken: state.sessionToken,
+        apiKeySetupTime: state.apiKeySetupTime,
       }),
     }
   )

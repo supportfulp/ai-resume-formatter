@@ -32,6 +32,31 @@ export const authAPI = {
     const response = await api.post('/auth/verify-api-key', { api_key: apiKey })
     return response.data
   },
+
+  saveApiKey: async (userId: number, apiKey: string): Promise<ApiResponse<any>> => {
+    const response = await api.post('/auth/save-api-key', { user_id: userId, api_key: apiKey })
+    return response.data
+  },
+
+  getApiKey: async (userId: number): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/auth/get-api-key/${userId}`)
+    return response.data
+  },
+
+  createSession: async (userId: number, expiresInHours?: number): Promise<ApiResponse<any>> => {
+    const response = await api.post('/auth/create-session', { user_id: userId, expires_in_hours: expiresInHours })
+    return response.data
+  },
+
+  validateSession: async (sessionToken: string): Promise<ApiResponse<any>> => {
+    const response = await api.post('/auth/validate-session', { session_token: sessionToken })
+    return response.data
+  },
+
+  logout: async (sessionToken: string): Promise<ApiResponse<any>> => {
+    const response = await api.post('/auth/logout', { session_token: sessionToken })
+    return response.data
+  },
 }
 
 // Resume Processing APIs
@@ -39,13 +64,21 @@ export const processingAPI = {
   processResume: async (
     file: File,
     apiKey: string,
-    customPrompt?: string
+    customPrompt?: string,
+    userId?: number,
+    customPromptName?: string
   ): Promise<ApiResponse<ProcessingResult>> => {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('api_key', apiKey)
     if (customPrompt) {
       formData.append('custom_prompt', customPrompt)
+    }
+    if (userId) {
+      formData.append('user_id', userId.toString())
+    }
+    if (customPromptName) {
+      formData.append('custom_prompt_name', customPromptName)
     }
 
     const response = await api.post('/process/resume', formData, {

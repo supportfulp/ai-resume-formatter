@@ -20,13 +20,13 @@ const ApiKeySetup: React.FC = () => {
     setIsValidating(true)
     try {
       if (validateApiKey(data.apiKey)) {
-        setApiKey(data.apiKey)
+        await setApiKey(data.apiKey, true) // Save to database
         toast.success('API key configured successfully!')
       } else {
         toast.error('Invalid API key format. Please check and try again.')
       }
     } catch (error) {
-      toast.error('Failed to validate API key.')
+      toast.error('Failed to save API key.')
     } finally {
       setIsValidating(false)
     }
