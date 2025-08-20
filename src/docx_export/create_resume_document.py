@@ -83,14 +83,18 @@ class ResumeDocumentGenerator:
         name_run = header.runs[0]
         name_run.font.size = Pt(32)
         name_run.font.name = 'Georgia'
+        header.paragraph_format.space_after = Pt(0)  # Reduce space after name
+        header.paragraph_format.space_before = Pt(0)  # Reduce space before name
 
-        title_para = self.document.add_paragraph(self.resume_data['reference_number'])
+        title_para = self.document.add_paragraph(f"Ref#: {self.resume_data['reference_number']}")
         title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_run = title_para.runs[0]
         title_run.font.size = Pt(9)
         title_run.font.italic = True
         title_run.font.name = 'Arial'
-    
+        title_para.paragraph_format.space_before = Pt(0)  # Reduce space before ref number
+        title_para.paragraph_format.space_after = Pt(0)  # Reduce space after ref number
+
     def _create_main_table(self, skills_column_width=2.25, exp_column_width=5.25):
         """Create the main table structure for the resume layout."""
         # Create main table structure
