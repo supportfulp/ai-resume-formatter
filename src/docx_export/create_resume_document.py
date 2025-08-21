@@ -126,15 +126,16 @@ class ResumeDocumentGenerator:
         """Add the skills section to the left sidebar."""
         # Summary section
         summary = self.resume_data['summary'].split('. ')
-        skills_cell.paragraphs[0].text = ""
-        skills_spacing = skills_cell.paragraphs[0]
-        skills_spacing.paragraph_format.space_after = Pt(0)
-        skills_spacing.paragraph_format.line_spacing = 1.1
-        skills_spacing.paragraph_format.space_before = Pt(0)
+        # skills_cell.paragraphs[0].text = ""
+        # skills_spacing = skills_cell.paragraphs[0]
+        # skills_spacing.runs[0].font.size = Pt(10)
+        # skills_spacing.paragraph_format.space_after = Pt(0)
+        # skills_spacing.paragraph_format.line_spacing = 1.1
+        # skills_spacing.paragraph_format.space_before = Pt(0)
         for summ in summary:
-            sum_para = skills_cell.add_paragraph(summ)
-            # skills_cell.paragraphs[0].text = summ
-            # sum_para = skills_cell.paragraphs[0]
+            # sum_para = skills_cell.add_paragraph(summ)
+            skills_cell.paragraphs[0].text = summ
+            sum_para = skills_cell.paragraphs[0]
             sum_para.runs[0].font.name = 'Arial'
             sum_para.paragraph_format.space_before = Pt(0)
         
@@ -172,14 +173,14 @@ class ResumeDocumentGenerator:
         # Add spacing paragraph first
         exp_cell.paragraphs[0].text = ""
         exp_spacing = exp_cell.paragraphs[0]
-        exp_spacing.paragraph_format.space_after = Pt(0)
-        exp_spacing.paragraph_format.line_spacing = 1.1
-        exp_spacing.paragraph_format.space_before = Pt(0)
-        
+        # exp_spacing.paragraph_format.space_after = Pt(0)
+        # exp_spacing.paragraph_format.line_spacing = 1.1
+        # exp_spacing.paragraph_format.space_before = Pt(0)
+        # exp_spacing.runs[0].font.size = Pt(5)
         # Create new Experience heading paragraph
-        exp_heading = exp_cell.add_paragraph("Experience")
-        # exp_cell.paragraphs[0].text = "Experience"
-        # exp_heading = exp_cell.paragraphs[0]
+        # exp_heading = exp_cell.add_paragraph("Experience")
+        exp_cell.paragraphs[0].text = "Experience"
+        exp_heading = exp_cell.paragraphs[0]
         exp_heading.runs[0].font.bold = True
         exp_heading.runs[0].font.size = Pt(14)
         exp_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
@@ -235,14 +236,14 @@ class ResumeDocumentGenerator:
     
     def _add_education_section(self, edu_cell):
         """Add the education section to the bottom area."""
-        edu_cell.paragraphs[0].text = ""
-        edu_spacing = edu_cell.paragraphs[0]
-        edu_spacing.paragraph_format.space_after = Pt(0)
-        edu_spacing.paragraph_format.line_spacing = 1.1
-        edu_spacing.paragraph_format.space_before = Pt(0)
-        edu_heading = edu_cell.add_paragraph("Education")
-        # edu_cell.paragraphs[0].text = "Education"
-        # edu_heading = edu_cell.paragraphs[0]
+        # edu_cell.paragraphs[0].text = ""
+        # edu_spacing = edu_cell.paragraphs[0]
+        # edu_spacing.paragraph_format.space_after = Pt(0)
+        # edu_spacing.paragraph_format.line_spacing = 1.1
+        # edu_spacing.paragraph_format.space_before = Pt(0)
+        # edu_heading = edu_cell.add_paragraph("Education")
+        edu_cell.paragraphs[0].text = "Education"
+        edu_heading = edu_cell.paragraphs[0]
         edu_heading.runs[0].font.bold = True
         edu_heading.runs[0].font.size = Pt(14)
         edu_heading.runs[0].font.color.rgb = RGBColor(99, 130, 118)
@@ -291,7 +292,6 @@ class ResumeDocumentGenerator:
         """
         # Parse JSON data
         self.resume_data = json.loads(request_json)
-        print("self.resume_data", self.resume_data)
         
         # Set up document
         self._setup_document()

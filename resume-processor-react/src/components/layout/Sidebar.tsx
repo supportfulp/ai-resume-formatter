@@ -26,8 +26,8 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedTab, onTabChange }) => {
       
       // If we have the person's name, use it in the filename
       if (editedData.name && editedData.name !== 'Unknown' && editedData.name !== 'Resume Candidate') {
-        const cleanName = editedData.name.replace(/[^a-zA-Z\s]/g, '').trim().replace(/\s+/g, '_')
-        filename = `${cleanName}_Resume.docx`
+        const cleanName = editedData.name.replace(/[^a-zA-Z\s]/g, '').trim().replace(/\s+/g, ' ')
+        filename = `${cleanName}.docx`
       }
       
       const blob = await processingAPI.exportDocx(editedData, filename)

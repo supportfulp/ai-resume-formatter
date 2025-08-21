@@ -11,7 +11,7 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
 
     Required JSON structure:
     {{
-        "name": "Full name",
+        "name": "Full name (always make the first letter of the first name and last name capitalized)",
         "email": "email@example.com", 
         "phone": "phone number or null",
         "location": "City, State/Country or null",
@@ -20,7 +20,7 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
         "reference_number": "Reference number or null",
         "experience": [
             {{
-                "company": "Company name",
+                "company": "Company name, location",
                 "title": "Job title", 
                 "start_date": "Start date (year)",
                 "end_date": "End date (year) or null",
