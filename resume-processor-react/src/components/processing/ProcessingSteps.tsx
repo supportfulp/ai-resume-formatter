@@ -41,65 +41,60 @@ const ProcessingSteps: React.FC = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            🔄
-          </div>
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg">🔄</div>
           Processing Steps
         </CardTitle>
-        {isProcessing && (
-          <div className="space-y-3">
-            <Progress value={progress} className="h-2" />
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Progress: {completedSteps} of {processingSteps.length} completed</span>
-              <span>{Math.round(progress)}%</span>
-            </div>
+        <div className="space-y-3">
+          <Progress value={progress} className="h-2" />
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>
+              {completedSteps} of {processingSteps.length} completed
+            </span>
+            <span>{Math.round(progress)}%</span>
           </div>
-        )}
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {processingSteps.map((step, index) => (
-            <div 
-              key={step.step} 
-              className={`p-4 rounded-lg border transition-all duration-200 ${
-                step.status === 'completed' 
-                  ? 'bg-green-50 border-green-200' 
-                  : step.status === 'processing'
-                  ? 'bg-blue-50 border-blue-200'
-                  : step.status === 'error'
-                  ? 'bg-red-50 border-red-200'
-                  : 'bg-gray-50 border-gray-200'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-full ${
-                  step.status === 'completed' 
-                    ? 'bg-green-100' 
+        <ol className="relative border-l border-gray-200 dark:border-gray-700 pl-6 space-y-6">
+          {processingSteps.map((step) => (
+            <li key={step.step} className="ml-4">
+              <span
+                className={`absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full border-2 bg-background text-xs ${
+                  step.status === 'completed'
+                    ? 'border-green-500 text-green-600'
                     : step.status === 'processing'
-                    ? 'bg-blue-100'
+                    ? 'border-blue-500 text-blue-600'
                     : step.status === 'error'
-                    ? 'bg-red-100'
-                    : 'bg-gray-100'
-                }`}>
-                  {getStepIcon(step.status)}
+                    ? 'border-red-500 text-red-600'
+                    : 'border-gray-300 text-gray-500'
+                }`}
+              >
+                {getStepIcon(step.status)}
+              </span>
+              <div
+                className={`rounded-lg border p-4 transition-colors ${
+                  step.status === 'completed'
+                    ? 'border-green-200/60 bg-green-50 dark:border-green-900/40 dark:bg-green-950/20'
+                    : step.status === 'processing'
+                    ? 'border-blue-200/60 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-950/20'
+                    : step.status === 'error'
+                    ? 'border-red-200/60 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20'
+                    : 'border-gray-200/60 bg-gray-50 dark:border-gray-800 dark:bg-gray-900'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Step {step.step}: {step.name}</h4>
+                  {getStepBadge(step.status)}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-gray-900">
-                      Step {step.step}: {step.name}
-                    </h4>
-                    {getStepBadge(step.status)}
-                  </div>
-                  {step.error && (
-                    <p className="text-sm text-red-600 mt-1 bg-red-50 p-2 rounded">
-                      ⚠️ {step.error}
-                    </p>
-                  )}
-                </div>
+                {step.error && (
+                  <p className="mt-2 rounded bg-red-100 p-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                    ⚠️ {step.error}
+                  </p>
+                )}
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </CardContent>
     </Card>
   )

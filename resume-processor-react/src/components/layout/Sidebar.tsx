@@ -1,10 +1,7 @@
 import React from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
-import { Badge } from '../ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { useAuthStore } from '../../store/useAuthStore'
 import { useProcessingStore } from '../../store/useProcessingStore'
-import { maskApiKey, formatElapsedTime } from '../../lib/utils'
 import { processingAPI } from '../../services/api'
 import { toast } from 'sonner'
 
@@ -14,7 +11,6 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ selectedTab, onTabChange }) => {
-  const { user, apiKey, apiKeySetupTime, demoMode } = useAuthStore()
   const { processingComplete, editedData, currentFilename } = useProcessingStore()
 
   const handleQuickExportDocx = async () => {
@@ -76,88 +72,31 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedTab, onTabChange }) => {
   }
 
   return (
-    <div className="w-80 border-r bg-background p-4 space-y-4">
-      {/* User Profile Card */}
+    <div className="w-80 border-r bg-background p-4 space-y-4 sticky top-[64px] h-[calc(100vh-64px)] overflow-y-auto">
+      {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">👤 {user?.username}</CardTitle>
-          <CardDescription>{user?.email || 'User'}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* API Key Status */}
-          {apiKey ? (
-            <>
-              <Badge variant="default">🔑 API Key: Configured</Badge>
-              <p className="text-sm text-gray-600">
-                Key: {maskApiKey(apiKey)}
-              </p>
-              {apiKeySetupTime && (
-                <p className="text-sm text-gray-500">
-                  ⏱️ Setup: {formatElapsedTime(apiKeySetupTime)}
-                </p>
-              )}
-            </>
-          ) : (
-            <Badge variant="destructive">⚠️ API Key: Not set</Badge>
-          )}
-
-          {/* Demo Mode Indicator */}
-          {demoMode && (
-            <div className="p-2 bg-blue-50 rounded text-sm text-blue-800">
-              🔧 Demo Mode - No persistent storage
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Navigation */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">🧭 Navigation</CardTitle>
+          <CardTitle className="text-lg">⚡ Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <nav className="space-y-2">
-            <button
-              onClick={() => onTabChange('processing')}
-              className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                selectedTab === 'processing'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-accent hover:text-accent-foreground'
-              }`}
+          <div className="space-y-2">
+            <Button 
+              onClick={handleQuickExportDocx}
+              variant="default" 
+              className="w-full"
+              disabled={!processingComplete || !editedData}
             >
-              📁 Resume Processing
-            </button>
-            <button
-              onClick={() => onTabChange('prompts')}
-              className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                selectedTab === 'prompts'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-accent hover:text-accent-foreground'
-              }`}
+              📄 Export to DOCX
+            </Button>
+            <Button 
+              onClick={handleQuickExportJson}
+              variant="outline" 
+              className="w-full"
+              disabled={!processingComplete || !editedData}
             >
-              🔧 Prompt Management
-            </button>
-            <button
-              onClick={() => onTabChange('history')}
-              className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                selectedTab === 'history'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-accent hover:text-accent-foreground'
-              }`}
-            >
-              📊 Processing History
-            </button>
-            <button
-              onClick={() => onTabChange('dashboard')}
-              className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                selectedTab === 'dashboard'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-accent hover:text-accent-foreground'
-              }`}
-            >
-              💰 Consumption Dashboard
-            </button>
-          </nav>
+              📄 Export to JSON
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
