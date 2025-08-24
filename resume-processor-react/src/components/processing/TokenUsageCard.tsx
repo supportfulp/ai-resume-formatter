@@ -1,7 +1,7 @@
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { useProcessingStore } from '../../store/useProcessingStore'
-import { formatNumber, formatCurrency, formatCompactNumber } from '../../lib/utils'
+import { formatNumber, formatCurrency } from '../../lib/utils'
 
 const TokenUsageCard: React.FC = () => {
   const { originalResults } = useProcessingStore()
@@ -30,7 +30,7 @@ const TokenUsageCard: React.FC = () => {
               <span className="text-sm font-medium text-blue-900 dark:text-blue-200">Input Tokens</span>
             </div>
             <span className="text-base font-semibold text-blue-600 tabular-nums break-all max-w-[45%] text-right truncate">
-              {formatCompactNumber(total_tokens.input_tokens)}
+              {formatNumber(total_tokens.input_tokens)}
             </span>
           </div>
           <div className="flex items-center justify-between p-3 rounded-md border border-green-200 bg-green-50 dark:border-green-900/40 dark:bg-green-950/20">
@@ -41,7 +41,7 @@ const TokenUsageCard: React.FC = () => {
               <span className="text-sm font-medium text-green-900 dark:text-green-200">Output Tokens</span>
             </div>
             <span className="text-base font-semibold text-green-600 tabular-nums break-all max-w-[45%] text-right truncate">
-              {formatCompactNumber(total_tokens.output_tokens)}
+              {formatNumber(total_tokens.output_tokens)}
             </span>
           </div>
           <div className="flex items-center justify-between p-3 rounded-md border border-purple-200 bg-purple-50 dark:border-purple-900/40 dark:bg-purple-950/20">
@@ -52,7 +52,7 @@ const TokenUsageCard: React.FC = () => {
               <span className="text-sm font-medium text-purple-900 dark:text-purple-200">Total Tokens</span>
             </div>
             <span className="text-base font-semibold text-purple-600 tabular-nums break-all max-w-[45%] text-right truncate">
-              {formatCompactNumber(total_tokens.total_tokens)}
+              {formatNumber(total_tokens.total_tokens)}
             </span>
           </div>
           <div className="flex items-center justify-between p-3 rounded-md border border-orange-200 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/20">
