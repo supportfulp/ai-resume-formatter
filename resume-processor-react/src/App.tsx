@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useAuthStore } from './store/useAuthStore'
@@ -7,7 +7,13 @@ import ApiKeySetup from './components/auth/ApiKeySetup'
 import MainApp from './components/MainApp'
 
 function App() {
-  const { isAuthenticated, apiKey } = useAuthStore()
+  const { isAuthenticated, hasApiKey, loadApiKey, user } = useAuthStore()
+
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      loadApiKey().catch(() => {})
+    }
+  }, [isAuthenticated, user?.id, loadApiKey])
 
   return (
     <Router>
@@ -18,7 +24,7 @@ function App() {
             element={
               !isAuthenticated ? (
                 <LoginForm />
-              ) : !apiKey ? (
+              ) : hasApiKey === false ? (
                 <ApiKeySetup />
               ) : (
                 <MainApp />

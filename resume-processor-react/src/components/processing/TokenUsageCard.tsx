@@ -1,7 +1,7 @@
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { useProcessingStore } from '../../store/useProcessingStore'
-import { formatNumber, formatCurrency } from '../../lib/utils'
+import { formatNumber, formatCurrency, formatCompactNumber } from '../../lib/utils'
 
 const TokenUsageCard: React.FC = () => {
   const { originalResults } = useProcessingStore()
@@ -20,12 +20,61 @@ const TokenUsageCard: React.FC = () => {
         <CardDescription>Processing statistics for this session</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        {/* Compact list for narrow columns */}
+        <div className="block xl:hidden space-y-3 mb-6">
+          <div className="flex items-center justify-between p-3 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-950/20">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2 bg-blue-100 rounded-full w-8 h-8 flex items-center justify-center">
+                <span className="text-blue-600 font-bold">📥</span>
+              </div>
+              <span className="text-sm font-medium text-blue-900 dark:text-blue-200">Input Tokens</span>
+            </div>
+            <span className="text-base font-semibold text-blue-600 tabular-nums break-all max-w-[45%] text-right truncate">
+              {formatCompactNumber(total_tokens.input_tokens)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-md border border-green-200 bg-green-50 dark:border-green-900/40 dark:bg-green-950/20">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2 bg-green-100 rounded-full w-8 h-8 flex items-center justify-center">
+                <span className="text-green-600 font-bold">📤</span>
+              </div>
+              <span className="text-sm font-medium text-green-900 dark:text-green-200">Output Tokens</span>
+            </div>
+            <span className="text-base font-semibold text-green-600 tabular-nums break-all max-w-[45%] text-right truncate">
+              {formatCompactNumber(total_tokens.output_tokens)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-md border border-purple-200 bg-purple-50 dark:border-purple-900/40 dark:bg-purple-950/20">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2 bg-purple-100 rounded-full w-8 h-8 flex items-center justify-center">
+                <span className="text-purple-600 font-bold">📊</span>
+              </div>
+              <span className="text-sm font-medium text-purple-900 dark:text-purple-200">Total Tokens</span>
+            </div>
+            <span className="text-base font-semibold text-purple-600 tabular-nums break-all max-w-[45%] text-right truncate">
+              {formatCompactNumber(total_tokens.total_tokens)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-md border border-orange-200 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/20">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2 bg-orange-100 rounded-full w-8 h-8 flex items-center justify-center">
+                <span className="text-orange-600 font-bold">💵</span>
+              </div>
+              <span className="text-sm font-medium text-orange-900 dark:text-orange-200">Estimated Cost</span>
+            </div>
+            <span className="text-base font-semibold text-orange-600 tabular-nums break-all max-w-[45%] text-right truncate">
+              {formatCurrency(cost_estimation.total_cost_usd)}
+            </span>
+          </div>
+        </div>
+
+        {/* Tile grid for wide screens */}
+        <div className="hidden xl:grid grid-cols-4 gap-4 mb-6">
           <div className="min-w-0 text-center p-4 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-950/20">
             <div className="p-2 bg-blue-100 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center">
               <span className="text-blue-600 font-bold">📥</span>
             </div>
-            <p className="text-xl md:text-2xl xl:text-3xl font-bold text-blue-600 tracking-tight tabular-nums">
+            <p className="text-2xl md:text-3xl xl:text-4xl font-bold text-blue-600 font-mono">
               {formatNumber(total_tokens.input_tokens)}
             </p>
             <p className="text-sm text-muted-foreground whitespace-nowrap">Input Tokens</p>
@@ -34,7 +83,7 @@ const TokenUsageCard: React.FC = () => {
             <div className="p-2 bg-green-100 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center">
               <span className="text-green-600 font-bold">📤</span>
             </div>
-            <p className="text-xl md:text-2xl xl:text-3xl font-bold text-green-600 tracking-tight tabular-nums">
+            <p className="text-2xl md:text-3xl xl:text-4xl font-bold text-green-600 font-mono">
               {formatNumber(total_tokens.output_tokens)}
             </p>
             <p className="text-sm text-muted-foreground whitespace-nowrap">Output Tokens</p>
@@ -43,7 +92,7 @@ const TokenUsageCard: React.FC = () => {
             <div className="p-2 bg-purple-100 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center">
               <span className="text-purple-600 font-bold">📊</span>
             </div>
-            <p className="text-xl md:text-2xl xl:text-3xl font-bold text-purple-600 tracking-tight tabular-nums">
+            <p className="text-2xl md:text-3xl xl:text-4xl font-bold text-purple-600 font-mono">
               {formatNumber(total_tokens.total_tokens)}
             </p>
             <p className="text-sm text-muted-foreground whitespace-nowrap">Total Tokens</p>
@@ -52,7 +101,7 @@ const TokenUsageCard: React.FC = () => {
             <div className="p-2 bg-orange-100 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center">
               <span className="text-orange-600 font-bold">💵</span>
             </div>
-            <p className="text-lg md:text-xl xl:text-2xl font-bold text-orange-600 tracking-tight tabular-nums">
+            <p className="text-xl md:text-2xl xl:text-3xl font-bold text-orange-600 font-mono">
               {formatCurrency(cost_estimation.total_cost_usd)}
             </p>
             <p className="text-sm text-muted-foreground whitespace-nowrap">Estimated Cost</p>

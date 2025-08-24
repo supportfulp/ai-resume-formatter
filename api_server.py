@@ -285,7 +285,7 @@ async def logout(request: ValidateSessionRequest):
 @app.post("/process/resume", response_model=ApiResponse)
 async def process_resume(
     file: UploadFile = File(...),
-    api_key: str = Form(...),
+    api_key: Optional[str] = Form(None),
     custom_prompt: Optional[str] = Form(None),
     user_id: Optional[int] = Form(None),
     custom_prompt_name: Optional[str] = Form(None)
@@ -296,9 +296,14 @@ async def process_resume(
         if not file.filename.endswith('.pdf'):
             return ApiResponse(success=False, error="Only PDF files are supported")
         
+        # Obtain API key: use provided, otherwise fallback to stored key for the user
+        effective_api_key = api_key
+        if not effective_api_key and user_id and DATABASE_AVAILABLE:
+            effective_api_key = db_manager.get_api_key_plaintext(user_id)
+
         # Validate API key
-        if not validate_api_key(api_key):
-            return ApiResponse(success=False, error="Invalid API key format")
+        if not effective_api_key or not validate_api_key(effective_api_key):
+            return ApiResponse(success=False, error="Invalid or missing API key")
         
         # Save uploaded file temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
@@ -315,8 +320,8 @@ async def process_resume(
             }
             
             # Initialize chains
-            restructure_chain = ResumeRestructureChain(api_key=api_key, custom_prompt=custom_prompt)
-            formatter = ResumeFormatter(api_key=api_key)
+            restructure_chain = ResumeRestructureChain(api_key=effective_api_key, custom_prompt=custom_prompt)
+            formatter = ResumeFormatter(api_key=effective_api_key)
             
             # Step 1: Extract structured data
             request = ResumeProcessingRequest(

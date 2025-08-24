@@ -8,6 +8,7 @@ interface AuthState {
   isAuthenticated: boolean
   apiKey: string
   apiKeySetupTime: number | null
+  hasApiKey: boolean | null
   demoMode: boolean
   sessionToken: string | null
   login: (user: User) => void
@@ -25,6 +26,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       apiKey: '',
       apiKeySetupTime: null,
+      hasApiKey: null,
       demoMode: false,
       sessionToken: null,
       login: (user) =>
@@ -46,6 +48,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           apiKey: '',
           apiKeySetupTime: null,
+          hasApiKey: null,
           sessionToken: null,
         })
       },
@@ -55,6 +58,7 @@ export const useAuthStore = create<AuthState>()(
         set({
           apiKey,
           apiKeySetupTime: Date.now(),
+          hasApiKey: true,
         })
 
         // Save to database if not in demo mode and user is logged in
@@ -83,10 +87,14 @@ export const useAuthStore = create<AuthState>()(
               // Don't set the actual key, just mark as configured
               set({
                 apiKeySetupTime: Date.now(),
+                hasApiKey: true,
               })
+            } else {
+              set({ hasApiKey: false })
             }
           } catch (error) {
             console.error('Failed to load API key status:', error)
+            set({ hasApiKey: false })
           }
         }
       },

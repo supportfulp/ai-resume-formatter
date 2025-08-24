@@ -28,11 +28,14 @@ const MainApp: React.FC = () => {
             <div className="lg:col-span-2 space-y-6">
               <FileUpload />
               <ProcessingSteps />
-              {processingComplete && <DataEditor />}
+              {processingComplete && (
+                <>
+                  <TokenUsageCard />
+                  <DataEditor />
+                </>
+              )}
             </div>
-            <div className="lg:col-span-1 lg:sticky lg:top-[64px] space-y-6 h-fit">
-              {processingComplete && <TokenUsageCard />}
-            </div>
+            <div className="lg:col-span-1 lg:sticky lg:top-[64px] space-y-6 h-fit" />
           </div>
         )
       case 'prompts':

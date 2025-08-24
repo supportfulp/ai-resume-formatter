@@ -6,6 +6,8 @@ import time
 from typing import Optional, Dict, Any
 from contextlib import contextmanager
 import logging
+import base64
+from cryptography.fernet import Fernet
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +25,12 @@ class DatabaseManager:
             'user': os.getenv('POSTGRES_USER', 'postgres'),
             'password': os.getenv('POSTGRES_PASSWORD', 'password')
         }
+        # Initialize encryption key for API keys
+        secret = os.getenv('API_CRYPTO_SECRET', 'dev-insecure-default')
+        # Derive a Fernet key from the secret
+        secret_bytes = secret.encode()
+        derived_key = base64.urlsafe_b64encode(hashlib.sha256(secret_bytes).digest())
+        self._fernet = Fernet(derived_key)
     
     @contextmanager
     def get_connection(self):
@@ -62,11 +70,21 @@ class DatabaseManager:
                         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
                         api_key_hash VARCHAR(255) NOT NULL,
                         masked_key VARCHAR(50) NOT NULL,
+                        api_key_encrypted TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         last_used TIMESTAMP,
                         is_active BOOLEAN DEFAULT TRUE
                     )
                 """)
+
+                # Ensure api_key_encrypted column exists (for older DBs)
+                try:
+                    cursor.execute("""
+                        ALTER TABLE api_keys
+                        ADD COLUMN IF NOT EXISTS api_key_encrypted TEXT
+                    """)
+                except Exception as e:
+                    logger.warning(f"Skipping api_key_encrypted column add: {e}")
                 
                 # Create user_sessions table
                 cursor.execute("""
@@ -220,6 +238,9 @@ class DatabaseManager:
                 with conn.cursor() as cursor:
                     api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
                     masked_key = api_key[:8] + "..." + api_key[-4:] if len(api_key) > 12 else "***"
+                    # Encrypt API key for server-side usage
+                    encrypted_bytes = self._fernet.encrypt(api_key.encode())
+                    api_key_encrypted = encrypted_bytes.decode()
                     
                     # Deactivate existing API keys for this user
                     cursor.execute("""
@@ -229,9 +250,9 @@ class DatabaseManager:
                     
                     # Insert new API key
                     cursor.execute("""
-                        INSERT INTO api_keys (user_id, api_key_hash, masked_key)
-                        VALUES (%s, %s, %s)
-                    """, (user_id, api_key_hash, masked_key))
+                        INSERT INTO api_keys (user_id, api_key_hash, masked_key, api_key_encrypted)
+                        VALUES (%s, %s, %s, %s)
+                    """, (user_id, api_key_hash, masked_key, api_key_encrypted))
                     
                     conn.commit()
                     logger.info(f"API key saved for user {user_id}")
@@ -255,6 +276,29 @@ class DatabaseManager:
                     return result[0] if result else None
         except Exception as e:
             logger.error(f"Error getting API key for user {user_id}: {e}")
+            return None
+
+    def get_api_key_plaintext(self, user_id: int) -> Optional[str]:
+        """Get user's active API key in plaintext (server-side use only)."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT api_key_encrypted FROM api_keys
+                        WHERE user_id = %s AND is_active = TRUE
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    """, (user_id,))
+                    result = cursor.fetchone()
+                    if not result:
+                        return None
+                    encrypted = result[0]
+                    if not encrypted:
+                        return None
+                    decrypted_bytes = self._fernet.decrypt(encrypted.encode())
+                    return decrypted_bytes.decode()
+        except Exception as e:
+            logger.error(f"Error decrypting API key for user {user_id}: {e}")
             return None
     
     def create_session(self, user_id: int, session_token: str, expires_in_hours: int = 24) -> bool:

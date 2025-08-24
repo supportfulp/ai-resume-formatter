@@ -63,14 +63,16 @@ export const authAPI = {
 export const processingAPI = {
   processResume: async (
     file: File,
-    apiKey: string,
+    apiKey?: string,
     customPrompt?: string,
     userId?: number,
     customPromptName?: string
   ): Promise<ApiResponse<ProcessingResult>> => {
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('api_key', apiKey)
+    if (apiKey) {
+      formData.append('api_key', apiKey)
+    }
     if (customPrompt) {
       formData.append('custom_prompt', customPrompt)
     }

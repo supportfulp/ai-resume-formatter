@@ -8,7 +8,7 @@ import { processingAPI } from '../../services/api'
 import { toast } from 'sonner'
 
 const FileUpload: React.FC = () => {
-  const { apiKey, user } = useAuthStore()
+  const { apiKey, user, hasApiKey } = useAuthStore()
   const {
     currentFilename,
     selectedPrompt,
@@ -43,7 +43,8 @@ const FileUpload: React.FC = () => {
   })
 
   const processResume = async () => {
-    if (!acceptedFiles[0] || !apiKey) return
+    if (!acceptedFiles[0]) return
+    if (!apiKey && !hasApiKey) return
 
     setProcessing(true)
     
@@ -59,7 +60,7 @@ const FileUpload: React.FC = () => {
 
       const response = await processingAPI.processResume(
         acceptedFiles[0],
-        apiKey,
+        apiKey || undefined,
         selectedPrompt || undefined,
         user?.id,
         selectedPromptName || undefined
@@ -160,7 +161,7 @@ const FileUpload: React.FC = () => {
             {!processingComplete && (
               <Button 
                 onClick={processResume}
-                disabled={isProcessing || !apiKey}
+                disabled={isProcessing || (!apiKey && !hasApiKey)}
                 className="mt-4 w-full bg-blue-600 hover:bg-blue-700"
                 size="lg"
               >
