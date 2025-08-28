@@ -66,6 +66,11 @@ Education
 [Year] [Degree], [University Name], [Location]
 [Year] [Degree], [University Name], [Location]
 
+Certifications
+
+[Year] [Certification Name], [Issuing Organization]
+[Year] [Certification Name], [Issuing Organization]
+
 IMPORTANT: 
 - Do not include contact information (email, phone, social media)
 - Do not include personal photos

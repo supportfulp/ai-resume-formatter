@@ -24,7 +24,12 @@ class Education(BaseModel):
     gpa: Optional[str] = None
     relevant_coursework: Optional[List[str]] = None
 
-
+class Certification(BaseModel):
+    """Certification model."""
+    name: str
+    year: str
+    issuer: str
+    
 class ResumeData(BaseModel):
     """Complete resume data model."""
     name: str
@@ -38,7 +43,7 @@ class ResumeData(BaseModel):
     experience: List[Experience] = []
     education: List[Education] = []
     skills: List[str] = []
-    certifications: List[str] = []
+    certifications: List[Certification] = []
     languages: List[str] = []
     projects: Optional[List[Dict[str, Any]]] = None
     communcation_skills: Optional[str] = None

@@ -20,11 +20,11 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
         "reference_number": "Reference number or null",
         "experience": [
             {{
-                "company": "Company name, location",
+                "company": "Company name, Country",
                 "title": "Job title", 
                 "start_date": "Start date (year)",
                 "end_date": "End date (year) or null",
-                "achievements": ["achievement1", "achievement2"] or null
+                "achievements": ["achievement1", "achievement2"] or null (if the current job talk in the achievements section in the past tense, then the previous jobs should be in the past tense and the current job should be in the present tense.)
             }}
         ],
         "education": [
@@ -34,12 +34,18 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
                 "start_date": "Start date (year)",
                 "end_date": "End date (year) or null",
                 "gpa": GPA or null,
-                "relevant_coursework": ["course1", "course2"] or null
+                "relevant_coursework": ["course1", "course2"] or null 
+            }}
+        ],
+        "certifications": [
+            {{
+                "name": "Certification name",
+                "year": "Year of certification",
+                "issuer": "Issuing organization"
             }}
         ],
         "skills": ["skill1", "skill2", "skill3"],
-        "certifications": ["cert1", "cert2"] or [],
-        "languages": ["language1", "language2"] or []
+        "languages": ["language1", "language2"] or [] (always include "English" by default then add other languages if mentioned)
     }}
 
     Resume text:
@@ -47,6 +53,7 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
 
     IMPORTANT: Return ONLY the JSON object, no other text, no markdown formatting, no explanations.
     IMPORTANT: The Skills should be ordered by the most relevant to the least relevant to the person's experience.
+    IMPORTANT: In the experience section, if the current job talk in the achievements section in the past tense, then the previous jobs should be in the past tense and the current job should be in the present tense.
     """
 )
 

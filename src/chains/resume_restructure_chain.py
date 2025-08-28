@@ -192,7 +192,7 @@ class ResumeRestructureChain:
             "experience": [exp.dict() for exp in resume_data.experience],
             "education": [edu.dict() for edu in resume_data.education],
             "skills": resume_data.skills,
-            "certifications": resume_data.certifications,
+            "certifications": [cert.dict() for cert in resume_data.certifications],
             "languages": resume_data.languages
         }
         

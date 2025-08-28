@@ -148,7 +148,8 @@ class ResumeDocumentGenerator:
         languages = self.resume_data['languages']
         if languages:
             # Join all languages on one line with commas
-            languages_text = ', '.join(languages) if languages else ''
+            languages_text = 'and '.join(languages) if languages else ''
+            languages_text = 'Fluent in ' + languages_text
             lang_para = skills_cell.add_paragraph(languages_text)
             lang_para.runs[0].font.name = 'Arial'
 
@@ -241,8 +242,12 @@ class ResumeDocumentGenerator:
         # edu_spacing.paragraph_format.space_after = Pt(0)
         # edu_spacing.paragraph_format.line_spacing = 1.1
         # edu_spacing.paragraph_format.space_before = Pt(0)
-        # edu_heading = edu_cell.add_paragraph("Education")
-        edu_cell.paragraphs[0].text = "Education"
+        # Determine if we have certifications to show
+        certifications = self.resume_data.get('certifications') or self.resume_data.get('certs') or []
+        has_certifications = isinstance(certifications, list) and len(certifications) > 0
+
+        # edu_heading = edu_cell.add_paragraph("Education" or "Education & Certification")
+        edu_cell.paragraphs[0].text = "Education & Certification" if has_certifications else "Education"
         edu_heading = edu_cell.paragraphs[0]
         edu_heading.runs[0].font.bold = True
         edu_heading.runs[0].font.size = Pt(14)
@@ -278,6 +283,42 @@ class ResumeDocumentGenerator:
             
             edu_para.paragraph_format.space_before = Pt(0)
             edu_para.paragraph_format.space_after = Pt(0.5)
+
+        # Append certifications if available
+        if has_certifications:
+            for cert in certifications:
+                if not cert:
+                    continue
+                # Handle dict or plain string entries
+                if isinstance(cert, dict):
+                    year_or_date = cert.get('year') or cert.get('date') or cert.get('issued') or cert.get('issue_date') or 'N/A'
+                    name = cert.get('name') or cert.get('title') or 'Certification'
+                    issuer = cert.get('issuer') or cert.get('organization') or cert.get('provider') or ''
+                    tail = f", {issuer}" if issuer else ''
+                    cert_text = f"{year_or_date}  {name}{tail}"
+                else:
+                    cert_text = str(cert)
+
+                cert_para = edu_cell.add_paragraph(cert_text)
+
+                if cert_para.runs:
+                    try:
+                        # Split the text to format year/date separately if possible
+                        first_token, rest = cert_text.split('  ', 1)
+                        cert_para.clear()
+                        year_run = cert_para.add_run(first_token)
+                        year_run.font.bold = True
+                        year_run.font.name = 'Arial'
+                        year_run.font.color.rgb = RGBColor(64, 64, 64)
+
+                        rest_run = cert_para.add_run('  ' + rest)
+                        rest_run.font.name = 'Arial'
+                    except ValueError:
+                        # Fallback if split fails
+                        cert_para.runs[0].font.name = 'Arial'
+
+                cert_para.paragraph_format.space_before = Pt(0)
+                cert_para.paragraph_format.space_after = Pt(0.5)
     
     def generate_docx(self, request_json, output_file):
         """
