@@ -59,9 +59,12 @@ class ResumeDocumentGenerator:
             section.left_margin = Inches(0.6)
             section.right_margin = Inches(0.59)
             
-            # Set page size to Letter (8.5" x 11")
-            section.page_width = Inches(8.5)
-            section.page_height = Inches(self.page_height)
+            # # Set page size to Letter (8.5" x 11")
+            # section.page_width = Inches(8.5)
+            # section.page_height = Inches(self.page_height)
+            # Set page size to A4 (8.27" x 11.69")
+            section.page_width = Inches(8.27)
+            section.page_height = Inches(11.69)
     
     def _add_logo(self):
         """Add the logo image at the top left of the document."""
