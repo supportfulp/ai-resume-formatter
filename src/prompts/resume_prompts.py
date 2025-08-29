@@ -24,7 +24,7 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
                 "title": "Job title", 
                 "start_date": "Start date (year)",
                 "end_date": "End date (year) or null",
-                "achievements": ["achievement1", "achievement2"] or null (if the current job talk in the achievements section in the past tense, then the previous jobs should be in the past tense and the current job should be in the present tense.)
+                "achievements": ["achievement1", "achievement2"] or null (if the current job talk in the achievements section in the past tense, then the previous jobs should be in the past tense and the current job should be in the present continuous tense.)
             }}
         ],
         "education": [

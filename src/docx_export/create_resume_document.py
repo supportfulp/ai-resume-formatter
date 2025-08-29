@@ -150,11 +150,21 @@ class ResumeDocumentGenerator:
 
         languages = self.resume_data['languages']
         if languages:
-            # Join all languages on one line with commas
-            languages_text = 'and '.join(languages) if languages else ''
-            languages_text = 'Fluent in ' + languages_text
-            lang_para = skills_cell.add_paragraph(languages_text)
-            lang_para.runs[0].font.name = 'Arial'
+            # Format: 1 -> "Fluent in X"; 2 -> "Fluent in X and Y"; 3+ -> "Fluent in X, Y and Z"
+            clean_languages = [str(lang).strip() for lang in languages if str(lang).strip()]
+            count = len(clean_languages)
+            if count == 1:
+                formatted_languages = clean_languages[0]
+            elif count == 2:
+                formatted_languages = f"{clean_languages[0]} and {clean_languages[1]}"
+            elif count > 2:
+                formatted_languages = f"{', '.join(clean_languages[:-1])} and {clean_languages[-1]}"
+            else:
+                formatted_languages = ''
+            if formatted_languages:
+                languages_text = f"Fluent in {formatted_languages}"
+                lang_para = skills_cell.add_paragraph(languages_text)
+                lang_para.runs[0].font.name = 'Arial'
 
         # Key Skills section
         skills_heading = skills_cell.add_paragraph()
