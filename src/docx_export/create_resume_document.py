@@ -158,7 +158,7 @@ class ResumeDocumentGenerator:
             elif count == 2:
                 formatted_languages = f"{clean_languages[0]} and {clean_languages[1]}"
             elif count > 2:
-                formatted_languages = f"{', '.join(clean_languages[:-1])} and {clean_languages[-1]}"
+                formatted_languages = f"{', '.join(clean_languages[:-1])}, and {clean_languages[-1]}"
             else:
                 formatted_languages = ''
             if formatted_languages:
