@@ -157,8 +157,8 @@ const FileUpload: React.FC = () => {
           {...getRootProps()}
           className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-200 ${
             isDragActive 
-              ? 'border-blue-500 bg-blue-50 scale-105' 
-              : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 scale-105' 
+              : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50 dark:border-gray-600 dark:hover:border-blue-400 dark:hover:bg-gray-800/40'
           }`}
         >
           <input {...getInputProps()} />
@@ -186,7 +186,7 @@ const FileUpload: React.FC = () => {
         </div>
 
         {acceptedFiles[0] && (
-          <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+          <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900/40">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-full">
                 <span className="text-green-600">✅</span>
@@ -205,7 +205,7 @@ const FileUpload: React.FC = () => {
               <Button 
                 onClick={processResume}
                 disabled={isProcessing || (!apiKey && !hasApiKey)}
-                className="mt-4 w-full bg-blue-600 hover:bg-blue-700"
+                className="mt-4 w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
                 size="lg"
               >
                 {isProcessing ? (

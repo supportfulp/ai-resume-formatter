@@ -130,7 +130,7 @@ const PromptManager: React.FC = () => {
               </Button>
             </div>
             
-            <div className="border rounded-md p-3 bg-gray-50">
+            <div className="border rounded-md p-3 bg-gray-50 dark:bg-gray-800/60 dark:border-gray-700">
               <p className="text-sm font-medium mb-2">👀 Current Prompt Preview:</p>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{previewText}</p>
               {previewPrompt.length > 500 && (
@@ -186,7 +186,7 @@ const PromptManager: React.FC = () => {
             )}
           </form>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-md">
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-md dark:border-blue-900/40">
             <h4 className="font-semibold text-blue-900 mb-2">💡 Available Placeholders</h4>
             <div className="text-sm text-blue-800 space-y-1">
               <p><code className="bg-blue-100 px-1 rounded">{'{resume_data}'}</code> - The structured resume data to process</p>
@@ -241,7 +241,7 @@ const PromptManager: React.FC = () => {
                   </div>
                   
                   {expandedPrompt === prompt.id && (
-                    <div className="mt-3 p-3 bg-gray-50 rounded border">
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/60 rounded border dark:border-gray-700">
                       <p className="text-sm whitespace-pre-wrap">{prompt.prompt_text}</p>
                     </div>
                   )}

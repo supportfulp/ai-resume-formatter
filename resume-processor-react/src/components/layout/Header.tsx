@@ -35,7 +35,7 @@ const Header: React.FC<HeaderProps> = ({ selectedTab, onTabChange }) => {
               className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
                 selectedTab === t.id
                   ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-accent hover:text-accent-foreground'
+                  : 'hover:bg-accent/60 hover:text-accent-foreground dark:hover:bg-gray-800/80'
               }`}
             >
               <span className="mr-1">{t.icon}</span>
