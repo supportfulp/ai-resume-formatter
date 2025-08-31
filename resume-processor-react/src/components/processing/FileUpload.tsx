@@ -47,18 +47,14 @@ const FileUpload: React.FC = () => {
     if (!apiKey && !hasApiKey) return
 
     setProcessing(true)
-    
-    try {
-      // Step 1: Extract Data
-      updateProcessingStep(0, { status: 'processing' })
-      
-      // Step 2: Restructure
-      updateProcessingStep(1, { status: 'processing' })
-      
-      // Step 3: Final Format
-      updateProcessingStep(2, { status: 'processing' })
 
-      const response = await processingAPI.processResume(
+    try {
+      // set initial statuses
+      updateProcessingStep(0, { status: 'processing' })
+      updateProcessingStep(1, { status: 'pending' })
+      updateProcessingStep(2, { status: 'pending' })
+
+      const start = await processingAPI.startResumeProcess(
         acceptedFiles[0],
         apiKey || undefined,
         selectedPrompt || undefined,
@@ -66,34 +62,81 @@ const FileUpload: React.FC = () => {
         selectedPromptName || undefined
       )
 
-      if (response.success && response.data) {
-        // Mark all steps as completed
-        updateProcessingStep(0, { status: 'completed', result: response.data.step1_extracted_data })
-        updateProcessingStep(1, { status: 'completed', result: response.data.step2_restructured_text })
-        updateProcessingStep(2, { status: 'completed', result: response.data.step3_final_data })
+      if (!start.success || !start.data?.job_id) {
+        throw new Error(start.error || 'Failed to start processing')
+      }
 
-        setEditedData(response.data.step3_final_data)
-        setOriginalResults(response.data)
-        setProcessingComplete(true)
-        
-        toast.success('Processing complete! You can now edit the data below.')
-      } else {
-        // Mark all steps as error
-        updateProcessingStep(0, { status: 'error', error: response.error })
-        updateProcessingStep(1, { status: 'error', error: response.error })
-        updateProcessingStep(2, { status: 'error', error: response.error })
-        
-        toast.error(response.error || 'Processing failed')
+      const jobId = start.data.job_id
+
+      const poll = async () => {
+        const status = await processingAPI.getProcessStatus(jobId)
+        if (!status.success) throw new Error(status.error || 'Failed to get status')
+        const job = status.data
+
+        // reflect step statuses
+        if (Array.isArray(job.steps)) {
+          job.steps.forEach((s: any, idx: number) => {
+            const mapped = s.status as 'pending' | 'processing' | 'completed' | 'error'
+            updateProcessingStep(idx, { status: mapped })
+          })
+        }
+
+        if (job.status === 'completed') {
+          const data = job.data || {}
+          // mark steps completed with results
+          if (data.step1_extracted_data) updateProcessingStep(0, { status: 'completed', result: data.step1_extracted_data })
+          if (data.step2_restructured_text) updateProcessingStep(1, { status: 'completed', result: data.step2_restructured_text })
+          if (data.step3_final_data) updateProcessingStep(2, { status: 'completed', result: data.step3_final_data })
+
+          setEditedData(data.step3_final_data)
+          setOriginalResults({
+            step1_extracted_data: data.step1_extracted_data,
+            step2_restructured_text: data.step2_restructured_text,
+            step3_final_data: data.step3_final_data,
+            step3_final_formatted: data.step3_final_formatted,
+            processing_metadata: {
+              original_filename: acceptedFiles[0].name,
+              target_role: 'Software Engineer',
+              template_style: 'professional',
+            },
+            token_usage: data.token_usage,
+          })
+          setProcessingComplete(true)
+          toast.success('Processing complete! You can now edit the data below.')
+          setProcessing(false)
+          return true
+        }
+
+        if (job.status === 'error') {
+          const err = job.error || 'Processing failed'
+          updateProcessingStep(0, { status: 'error', error: err })
+          updateProcessingStep(1, { status: 'error', error: err })
+          updateProcessingStep(2, { status: 'error', error: err })
+          toast.error(err)
+          setProcessing(false)
+          return true
+        }
+
+        return false
+      }
+
+      // Poll until done or error
+      const intervalMs = 1000
+      let done = false
+      while (!done) {
+        // eslint-disable-next-line no-await-in-loop
+        done = await poll()
+        if (!done) {
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise((r) => setTimeout(r, intervalMs))
+        }
       }
     } catch (error) {
-      // Mark all steps as error
       const errorMessage = error instanceof Error ? error.message : 'Processing failed'
       updateProcessingStep(0, { status: 'error', error: errorMessage })
       updateProcessingStep(1, { status: 'error', error: errorMessage })
       updateProcessingStep(2, { status: 'error', error: errorMessage })
-      
       toast.error('Error processing resume: ' + errorMessage)
-    } finally {
       setProcessing(false)
     }
   }

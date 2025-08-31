@@ -13,6 +13,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+import asyncio
+import uuid
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -61,6 +63,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# In-memory job store for incremental processing
+JOBS: Dict[str, Dict[str, Any]] = {}
 
 # Add CORS middleware
 app.add_middleware(
@@ -445,6 +450,157 @@ async def process_resume(
     
     except Exception as e:
         return ApiResponse(success=False, error=str(e))
+
+
+# Incremental processing endpoints
+class StartProcessResponse(BaseModel):
+    job_id: str
+
+@app.post("/process/start", response_model=ApiResponse)
+async def start_process(
+    file: UploadFile = File(...),
+    api_key: Optional[str] = Form(None),
+    custom_prompt: Optional[str] = Form(None),
+    user_id: Optional[int] = Form(None),
+    custom_prompt_name: Optional[str] = Form(None)
+):
+    """Start processing and return a job_id immediately; progress is available via /process/status/{job_id}."""
+    try:
+        if not file.filename.endswith('.pdf'):
+            return ApiResponse(success=False, error="Only PDF files are supported")
+
+        # Determine effective API key
+        effective_api_key = api_key
+        if not effective_api_key and user_id and DATABASE_AVAILABLE:
+            effective_api_key = db_manager.get_api_key_plaintext(user_id)
+        if not effective_api_key or not validate_api_key(effective_api_key):
+            return ApiResponse(success=False, error="Invalid or missing API key")
+
+        # Save file to temp
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+            content = await file.read()
+            tmp_file.write(content)
+            temp_path = tmp_file.name
+
+        job_id = uuid.uuid4().hex
+        JOBS[job_id] = {
+            'status': 'running',
+            'steps': [
+                {'step': 1, 'name': 'Extract Data', 'status': 'pending'},
+                {'step': 2, 'name': 'Restructure', 'status': 'pending'},
+                {'step': 3, 'name': 'Final Format', 'status': 'pending'},
+            ],
+            'data': {},
+            'error': None,
+            'token_usage': {
+                'input_tokens': 0,
+                'output_tokens': 0,
+                'total_tokens': 0,
+            }
+        }
+
+        async def run_job():
+            try:
+                total_tokens = JOBS[job_id]['token_usage']
+
+                restructure_chain = ResumeRestructureChain(api_key=effective_api_key, custom_prompt=custom_prompt)
+                formatter = ResumeFormatter(api_key=effective_api_key)
+
+                # Step 1
+                JOBS[job_id]['steps'][0]['status'] = 'processing'
+                # yield control so status endpoint can serve
+                await asyncio.sleep(0)
+                request1 = ResumeProcessingRequest(
+                    file_path=temp_path,
+                    target_role="Software Engineer",
+                    template_style="professional",
+                    enhance_content=False,
+                    ats_optimize=False
+                )
+                # Offload blocking call to thread
+                step1_result = await asyncio.to_thread(formatter.format, request1)
+                JOBS[job_id]['data']['step1_extracted_data'] = step1_result.extracted_data.model_dump()
+                if hasattr(step1_result, 'processing_metadata') and step1_result.processing_metadata:
+                    usage = step1_result.processing_metadata.get('usage_metadata', {})
+                    total_tokens['input_tokens'] += usage.get('input_tokens', 0)
+                    total_tokens['output_tokens'] += usage.get('output_tokens', 0)
+                    total_tokens['total_tokens'] += usage.get('total_tokens', 0)
+                JOBS[job_id]['steps'][0]['status'] = 'completed'
+                await asyncio.sleep(0)
+
+                # Step 2
+                JOBS[job_id]['steps'][1]['status'] = 'processing'
+                await asyncio.sleep(0)
+                restructured_from_data = await asyncio.to_thread(
+                    restructure_chain.restructure_from_data,
+                    step1_result.extracted_data )
+                JOBS[job_id]['data']['step2_restructured_text'] = restructured_from_data
+                if hasattr(restructure_chain, 'last_usage_metadata') and restructure_chain.last_usage_metadata:
+                    usage = restructure_chain.last_usage_metadata
+                    total_tokens['input_tokens'] += usage.get('input_tokens', 0)
+                    total_tokens['output_tokens'] += usage.get('output_tokens', 0)
+                    total_tokens['total_tokens'] += usage.get('total_tokens', 0)
+                JOBS[job_id]['steps'][1]['status'] = 'completed'
+                await asyncio.sleep(0)
+
+                # Step 3
+                JOBS[job_id]['steps'][2]['status'] = 'processing'
+                await asyncio.sleep(0)
+                request3 = ResumeProcessingRequest(
+                    file_path="",
+                    content=restructured_from_data,
+                    target_role="Software Engineer",
+                    template_style="professional",
+                    enhance_content=False,
+                    ats_optimize=False
+                )
+                step3_result = await asyncio.to_thread(formatter.format, request3)
+                JOBS[job_id]['data']['step3_final_data'] = step3_result.extracted_data.model_dump()
+                JOBS[job_id]['data']['step3_final_formatted'] = step3_result.formatted_resume
+                if hasattr(step3_result, 'processing_metadata') and step3_result.processing_metadata:
+                    usage = step3_result.processing_metadata.get('usage_metadata', {})
+                    total_tokens['input_tokens'] += usage.get('input_tokens', 0)
+                    total_tokens['output_tokens'] += usage.get('output_tokens', 0)
+                    total_tokens['total_tokens'] += usage.get('total_tokens', 0)
+
+                input_cost = (total_tokens['input_tokens'] / 1000) * 0.000125
+                output_cost = (total_tokens['output_tokens'] / 1000) * 0.000375
+                total_cost = input_cost + output_cost
+                JOBS[job_id]['data']['token_usage'] = {
+                    'total_tokens': total_tokens,
+                    'cost_estimation': {
+                        'input_cost_usd': round(input_cost, 6),
+                        'output_cost_usd': round(output_cost, 6),
+                        'total_cost_usd': round(total_cost, 6),
+                        'model': 'gemini-2.5-flash'
+                    }
+                }
+
+                JOBS[job_id]['status'] = 'completed'
+            except Exception as e:
+                JOBS[job_id]['status'] = 'error'
+                JOBS[job_id]['error'] = str(e)
+            finally:
+                try:
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
+                except Exception:
+                    pass
+
+        # Launch background task
+        asyncio.create_task(run_job())
+
+        return ApiResponse(success=True, data={'job_id': job_id})
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@app.get("/process/status/{job_id}", response_model=ApiResponse)
+async def get_process_status(job_id: str):
+    job = JOBS.get(job_id)
+    if not job:
+        return ApiResponse(success=False, error="Job not found")
+    return ApiResponse(success=True, data=job)
 
 @app.post("/export/docx")
 async def export_docx(request: ExportDocxRequest):

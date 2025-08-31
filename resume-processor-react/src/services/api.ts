@@ -91,6 +91,33 @@ export const processingAPI = {
     return response.data
   },
 
+  startResumeProcess: async (
+    file: File,
+    apiKey?: string,
+    customPrompt?: string,
+    userId?: number,
+    customPromptName?: string
+  ): Promise<ApiResponse<{ job_id: string }>> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (apiKey) formData.append('api_key', apiKey)
+    if (customPrompt) formData.append('custom_prompt', customPrompt)
+    if (userId) formData.append('user_id', String(userId))
+    if (customPromptName) formData.append('custom_prompt_name', customPromptName)
+
+    const response = await api.post('/process/start', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+
+  getProcessStatus: async (
+    jobId: string
+  ): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/process/status/${jobId}`)
+    return response.data
+  },
+
   exportDocx: async (data: any, filename: string): Promise<Blob> => {
     const response = await api.post('/export/docx', { data, filename }, {
       responseType: 'blob',

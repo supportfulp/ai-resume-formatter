@@ -26,7 +26,7 @@ A modern React application that replicates all the functionality of the Streamli
 
 ### 📤 Export Options
 - **Multiple Formats**: JSON, TXT, DOCX
-- **Quick Export** - Sidebar export buttons
+- **Quick Actions** - Sidebar export buttons
 - **Batch Export** - Export all processing results
 
 ### 🔧 Prompt Management
