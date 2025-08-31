@@ -29,7 +29,7 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
         ],
         "education": [
             {{
-                "degree": "Degree name",
+                "degree": "Degree name", (if it's a bacholar degree or master degree, always write it: Bachelor's degree in or Master's degree in)
                 "institution": "Institution name",
                 "start_date": "Start date (year)",
                 "end_date": "End date (year) or null",
