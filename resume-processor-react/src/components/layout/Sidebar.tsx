@@ -100,30 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedTab, onTabChange }) => {
         </CardContent>
       </Card>
 
-      {/* Quick Export Section */}
-      {processingComplete && editedData && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">📤 Quick Export</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button 
-              onClick={handleQuickExportDocx}
-              variant="default" 
-              className="w-full"
-            >
-              📄 Export to DOCX
-            </Button>
-            <Button 
-              onClick={handleQuickExportJson}
-              variant="outline" 
-              className="w-full"
-            >
-              📄 Export to JSON
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* Removed duplicate Quick Export section; Quick Actions covers exports */}
     </div>
   )
 }

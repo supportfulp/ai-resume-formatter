@@ -60,10 +60,9 @@ const DataEditor: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-blue-800">
-          💡 <strong>Export Options:</strong> You can export your resume as JSON, TXT, or DOCX format. 
-          Use the buttons below or the Quick Export section in the sidebar.
+      <div className="bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/40 rounded-lg p-4">
+        <p className="text-blue-800 dark:text-blue-200">
+          💡 <strong>Export Options:</strong> You can export your resume as JSON, TXT, or DOCX format.
         </p>
       </div>
 
