@@ -274,4 +274,17 @@ class ResumeFormatter:
                         edu['end_date'] = str(edu['end_date'])
                         print(f"✅ Converted education end_date: {edu['end_date']}")
         
+        if 'certifications' in data and isinstance(data['certifications'], list):
+            print(f"✅ Converting certifications year: {data['certifications']}")
+            for cert in data['certifications']:
+                if isinstance(cert, dict):
+                    if 'year' in cert and isinstance(cert['year'], int):
+                        cert['year'] = str(cert['year'])
+                    # if year is None, set it to 'N/A'
+                    if cert['year'] is None:
+                        cert['year'] = 'N/A'
+                    if cert['issuer'] is None:
+                        cert['issuer'] = 'N/A'
+            print(f"✅ Converted certifications year: {data['certifications']}")
+        
         print("✅ Date field conversion completed")
