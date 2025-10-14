@@ -100,6 +100,11 @@ class ResumeFormatter:
         if data.get('languages') is None:
             data['languages'] = []
         
+        # Handle null company names in experience
+        for exp in data.get('experience', []):
+            if exp.get('company') is None:
+                exp['company'] = 'Self-employed'
+        
         # Convert date fields from integers to strings
         self._convert_date_fields(data)
         

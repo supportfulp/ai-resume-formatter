@@ -611,7 +611,7 @@ async def export_docx(request: ExportDocxRequest):
         temp_path = tmp_file.name
     
     try:
-        print("suzuki",request.filename)
+
         # Generate DOCX using existing generator
         generator = ResumeDocumentGenerator()  # Initialize with default page_height
         generator.generate_docx(json.dumps(request.data), temp_path)

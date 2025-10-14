@@ -20,7 +20,7 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
         "reference_number": "Reference number or null",
         "experience": [
             {{
-                "company": "Company name, Country",
+                "company": "Company name, Country (use 'Self-employed' or 'Freelance' if no company)",
                 "title": "Job title", 
                 "start_date": "Start date (year)",
                 "end_date": "End date (year) or null",

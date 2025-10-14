@@ -7,7 +7,7 @@ from datetime import date
 
 class Experience(BaseModel):
     """Work experience model."""
-    company: str
+    company: Optional[str] = None
     title: str
     start_date: Optional[str] = None
     end_date: Optional[str] = None
