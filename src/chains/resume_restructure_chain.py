@@ -115,11 +115,31 @@ class ResumeRestructureChain:
         )
     
     def _generate_reference_number(self, name: str) -> str:
-        """Generate a reference number based on name."""
-        # Simple reference number generation
-        initials = ''.join([word[0].upper() for word in name.split() if word])
-        timestamp = datetime.now().strftime("%m%d")
-        return f"{initials}{timestamp}"
+        """Generate a reference number based on name in format XXX-ABC."""
+        # Split name into parts
+        name_parts = name.split()
+        
+        if len(name_parts) < 2:
+            # Fallback if only one name part
+            first_name = name_parts[0] if name_parts else "X"
+            last_name = name_parts[0] if name_parts else "X"
+        else:
+            first_name = name_parts[0]
+            last_name = name_parts[-1]  # Last part is surname
+        
+        # Generate reference number: XXX-ABC
+        # A: first letter in the first name
+        # B: first letter in the last name
+        # C: last letter in the last name
+        a = first_name[0].upper() if first_name else "X"
+        b = last_name[0].upper() if last_name else "X"
+        c = last_name[-1].upper() if last_name else "X"
+        
+        # Generate XXX part (could be initials or random)
+        initials = ''.join([word[0].upper() for word in name_parts[:3]])  # First 3 initials
+        xxx = initials.ljust(3, 'X')[:3]  # Pad to 3 chars, max 3 chars
+        
+        return f"{xxx}-{a}{b}{c}"
     
     def _calculate_years_experience(self, experience: list) -> int:
         """Calculate total years of experience."""

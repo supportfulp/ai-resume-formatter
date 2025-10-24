@@ -162,7 +162,7 @@ class ResumeDocumentGenerator:
             else:
                 formatted_languages = ''
             if formatted_languages:
-                languages_text = f"Fluent in {formatted_languages}"
+                languages_text = f"Fluent in {formatted_languages}."
                 lang_para = skills_cell.add_paragraph(languages_text)
                 lang_para.runs[0].font.name = 'Arial'
 
@@ -282,7 +282,7 @@ class ResumeDocumentGenerator:
             if edu_para.runs:
                 # Split the text to format year separately
                 year_part = str(start_date)
-                degree_part = f"  {edu['degree']}, {edu['institution']}"
+                degree_part = f"  {edu['degree']}, {edu['institution']}."
                 
                 # Clear the paragraph and add formatted text
                 edu_para.clear()
