@@ -6,7 +6,7 @@ import { useProcessingStore } from '../../store/useProcessingStore'
 import { CheckCircle, Clock, AlertCircle, Loader } from 'lucide-react'
 
 const ProcessingSteps: React.FC = () => {
-  const { processingSteps, isProcessing } = useProcessingStore()
+  const { processingSteps } = useProcessingStore()
 
   const getStepIcon = (status: string) => {
     switch (status) {

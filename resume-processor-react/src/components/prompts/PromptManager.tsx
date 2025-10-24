@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
@@ -37,13 +37,7 @@ const PromptManager: React.FC = () => {
     }
   })
 
-  useEffect(() => {
-    if (user && !demoMode) {
-      loadCustomPrompts()
-    }
-  }, [user, demoMode])
-
-  const loadCustomPrompts = async () => {
+  const loadCustomPrompts = useCallback(async () => {
     if (!user) return
     
     try {
@@ -54,7 +48,13 @@ const PromptManager: React.FC = () => {
     } catch (error) {
       console.error('Failed to load custom prompts:', error)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user && !demoMode) {
+      loadCustomPrompts()
+    }
+  }, [user, demoMode, loadCustomPrompts])
 
   const onCreatePrompt = async (data: PromptFormData) => {
     if (!user) return

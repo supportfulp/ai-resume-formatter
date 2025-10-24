@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { tokenAPI } from '../../services/api'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -11,13 +11,7 @@ const ConsumptionDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    if (user && !demoMode) {
-      loadTokenData()
-    }
-  }, [user, demoMode])
-
-  const loadTokenData = async () => {
+  const loadTokenData = useCallback(async () => {
     if (!user) return
 
     setIsLoading(true)
@@ -39,7 +33,13 @@ const ConsumptionDashboard: React.FC = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user && !demoMode) {
+      loadTokenData()
+    }
+  }, [user, demoMode, loadTokenData])
 
   if (demoMode) {
     return (

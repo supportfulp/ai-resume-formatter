@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -14,13 +14,7 @@ const ProcessingHistoryComponent: React.FC = () => {
   const [history, setHistory] = useState<ProcessingHistory[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    if (user && !demoMode) {
-      loadHistory()
-    }
-  }, [user, demoMode])
-
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     if (!user) return
 
     setIsLoading(true)
@@ -34,7 +28,13 @@ const ProcessingHistoryComponent: React.FC = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user && !demoMode) {
+      loadHistory()
+    }
+  }, [user, demoMode, loadHistory])
 
   const loadResult = async (historyId: number) => {
     try {
