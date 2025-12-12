@@ -92,7 +92,11 @@ graph TD
     ```bash
     cp env.example .env
     ```
-    *Update the `.env` file with your Database credentials and Google API Key.*
+    **Critical Step:** Open the `.env` file and replace `your_google_api_key_here` with your actual Google Gemini API key:
+    ```env
+    GOOGLE_API_KEY=AIzaSy...
+    ```
+    *(Refer to `env.example` for the correct format)*
 
 5.  **Initialize the Database:**
     Ensure PostgreSQL is running and the credentials in `.env` are correct. The application will attempt to initialize tables on startup.
