@@ -16,8 +16,10 @@ An intelligent, full-stack resume formatting system powered by Google's Gemini 2
 
 ## 🏗️ Architecture Flow
 
+### High-Level Overview
 ![Architecture Diagram](assets/architecture_diagram.png)
 
+### Technical Process Flow
 ```mermaid
 graph TD
     User([User]) -->|Upload PDF| Frontend[Frontend React/Streamlit]
