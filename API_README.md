@@ -1,95 +1,100 @@
 # Resume Processor API Backend
 
 This is the FastAPI backend that provides REST API endpoints for the React frontend. It replicates all the functionality of the Streamlit app in a REST API format.
-
-## Features
-
-### 🔐 Authentication Endpoints
-- **POST /auth/login** - User authentication
-- **POST /auth/register** - User registration  
-- **POST /auth/verify-api-key** - Google API key validation
-
-### 📁 Resume Processing Endpoints
-- **POST /process/resume** - 3-step AI resume processing
-- **POST /export/docx** - Export resume as DOCX file
-
-### 📊 History Management Endpoints
-- **GET /history/{user_id}** - Get processing history
-- **GET /history/result/{history_id}** - Get specific result
-- **DELETE /history/{history_id}** - Delete history record
-
-### 🔧 Prompt Management Endpoints
-- **GET /prompts/{user_id}** - Get custom prompts
-- **POST /prompts** - Save custom prompt
-- **DELETE /prompts/{prompt_id}** - Delete custom prompt
-
-### 💰 Token Usage Endpoints
-- **GET /tokens/{user_id}** - Get token usage history
-- **GET /tokens/stats/{user_id}** - Get usage statistics
-
-## Quick Start
-
-### 1. Install Dependencies
-```bash
-# Install API server dependencies
-pip install -r api_requirements.txt
-
-# Or use the startup script (recommended)
-python start_api_server.py
-```
-
-### 2. Database Setup
-Ensure your PostgreSQL database is running and configured:
-
-```bash
-# Environment variables (create .env file)
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=resume_processor
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_password
-```
-
-### 3. Start the Server
-```bash
-# Using the startup script (recommended)
-python start_api_server.py
-
-# Or directly with uvicorn
-uvicorn api_server:app --host 0.0.0.0 --port 8000 --reload
-```
-
-The API will be available at:
-- **Server**: http://localhost:8000
-- **Documentation**: http://localhost:8000/docs
-- **Alternative docs**: http://localhost:8000/redoc
-
-## Environment Setup
-
-### Required Environment Variables
-```bash
-# Database Configuration
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=resume_processor
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_password
-
-# Optional: Google API Key (can also be set via API)
-GOOGLE_API_KEY=your_google_api_key
-```
-
-### Conda Environment (Recommended)
-```bash
-# Activate the rf environment as per your memory
-conda activate rf
-
-# Install dependencies
-pip install -r api_requirements.txt
-
-# Start the server
-python start_api_server.py
-```
+ 
+ ## 🏗️ Architecture Flow
+ 
+ ![Architecture Diagram](assets/architecture_diagram.png)
+ 
+ ## Features
+ 
+ ### 🔐 Authentication Endpoints
+ - **POST /auth/login** - User authentication
+ - **POST /auth/register** - User registration  
+ - **POST /auth/verify-api-key** - Google API key validation
+ 
+ ### 📁 Resume Processing Endpoints
+ - **POST /process/resume** - 3-step AI resume processing
+ - **POST /export/docx** - Export resume as DOCX file
+ 
+ ### 📊 History Management Endpoints
+ - **GET /history/{user_id}** - Get processing history
+ - **GET /history/result/{history_id}** - Get specific result
+ - **DELETE /history/{history_id}** - Delete history record
+ 
+ ### 🔧 Prompt Management Endpoints
+ - **GET /prompts/{user_id}** - Get custom prompts
+ - **POST /prompts** - Save custom prompt
+ - **DELETE /prompts/{prompt_id}** - Delete custom prompt
+ 
+ ### 💰 Token Usage Endpoints
+ - **GET /tokens/{user_id}** - Get token usage history
+ - **GET /tokens/stats/{user_id}** - Get usage statistics
+ 
+ ## Quick Start
+ 
+ ### 1. Install Dependencies
+ ```bash
+ # Install API server dependencies
+ pip install -r api_requirements.txt
+ 
+ # Or use the startup script (recommended)
+ python start_api_server.py
+ ```
+ 
+ ### 2. Database Setup
+ Ensure your PostgreSQL database is running and configured:
+ 
+ ```bash
+ # Environment variables (create .env file)
+ POSTGRES_HOST=localhost
+ POSTGRES_PORT=5432
+ POSTGRES_DB=resume_processor
+ POSTGRES_USER=postgres
+ POSTGRES_PASSWORD=your_password
+ ```
+ 
+ ### 3. Start the Server
+ ```bash
+ # Using the startup script (recommended)
+ python start_api_server.py
+ 
+ # Or directly with uvicorn
+ uvicorn api_server:app --host 0.0.0.0 --port 8000 --reload
+ ```
+ 
+ The API will be available at:
+ - **Server**: http://localhost:8000
+ - **Documentation**: http://localhost:8000/docs
+ - **Alternative docs**: http://localhost:8000/redoc
+ 
+ ## Environment Setup
+ 
+ ### Required Environment Variables
+ ```bash
+ # Database Configuration
+ POSTGRES_HOST=localhost
+ POSTGRES_PORT=5432
+ POSTGRES_DB=resume_processor
+ POSTGRES_USER=postgres
+ POSTGRES_PASSWORD=your_password
+ 
+ # Optional: Google API Key (can also be set via API)
+ GOOGLE_API_KEY=your_google_api_key
+ ```
+ 
+ ### Python Environment
+ ```bash
+ # Create virtual environment
+ python -m venv venv
+ source venv/bin/activate
+ 
+ # Install dependencies
+ pip install -r api_requirements.txt
+ 
+ # Start the server
+ python start_api_server.py
+ ```
 
 ## API Documentation
 

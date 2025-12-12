@@ -40,22 +40,22 @@ You now have a fully functional React application that replicates **100% of your
 | **Error Handling** | ⚠️ Basic | ✅ Comprehensive | 🆕 New |
 
 ## 🚀 How to Run
-
-### Option 1: Individual Servers
-```bash
-# Terminal 1: API Server
-conda activate rf
-python start_api_server.py
-
-# Terminal 2: React Frontend  
-cd resume-processor-react
-npm start
-```
-
-### Option 2: Both Servers (Recommended)
-```bash
-./start_both_servers.sh
-```
+ 
+ ### Option 1: Quick Start (Recommended)
+ ```bash
+ ./start_both_servers.sh
+ ```
+ 
+ ### Option 2: Individual Servers
+ ```bash
+ # Terminal 1: API Server
+ # Ensure your virtual environment is activated
+ python start_api_server.py
+ 
+ # Terminal 2: React Frontend  
+ cd resume-processor-react
+ npm start
+ ```
 
 ### Access Points
 - **React App**: http://localhost:3000
