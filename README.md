@@ -1,15 +1,15 @@
 # 📄 AI Resume Processor
 
-An intelligent, full-stack resume formatting system powered by Google's Gemini 2.5 Flash model. This tool automatically parses, restructures, and formatting resumes into professional templates using advanced LLM workflows.
+A web-based resume formatting system powered by Google's Gemini 2.5 Flash model. This tool automatically parses, restructures, and formats resumes into professional templates using LLM workflows.
 
 ## ✨ Features
 
 - **📄 Document Parsing**: Robust extraction of text from PDF resumes.
 - **🤖 AI-Powered Formatting**: Utilizes LangChain and Google Gemini to intelligently restructure resume content (Experience, Education, Skills, etc.).
 - **📝 Dual Interfaces**:
-  - **Modern React Frontend**: A sleek, responsive web application built with TypeScript, Tailwind CSS, and Radix UI.
+  - **Modern React Frontend**: A responsive web application built with TypeScript, Tailwind CSS, and Radix UI.
   - **Streamlit Dashboard**: A quick-start interactive dashboard for rapid testing and usage.
-- **✏️ Interactive Editing**: Review and edit parsed data before generating the final document.
+- **✏️ Interactive Editing**: Allows you to review and edit parsed data before generating the final document.
 - **💾 Export to DOCX**: Generates perfectly formatted Word documents based on processed data.
 - **🔐 User System**: Authentication, processing history tracking, and secure API key management.
 - **📊 Usage Tracking**: Monitors token usage and estimated costs per processing job.
