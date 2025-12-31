@@ -203,4 +203,4 @@ Detailed documentation for specific components can be found in:
 5.  Open a Pull Request.
 
 ---
-*Built with ❤️ using LangChain, FastAPI, and React.*
+*Built with ❤️ by [Supportful](https://supportful.world) using LangChain, FastAPI, and React.*
