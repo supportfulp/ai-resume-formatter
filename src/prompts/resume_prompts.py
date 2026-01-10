@@ -21,7 +21,7 @@ EXTRACT_INFO_PROMPT = PromptTemplate(
         "experience": [
             {{
                 "company": "Company name, Country (use 'Self-employed' or 'Freelance' if no company)",
-                "title": "Job title", 
+                "title": "Job title or N/A", 
                 "start_date": "Start date (year)",
                 "end_date": "End date (year) or null",
                 "achievements": ["achievement1", "achievement2"] or null (if the current job talk in the achievements section in the past tense, then the previous jobs should be in the past tense and the current job should be in the present continuous tense.)
