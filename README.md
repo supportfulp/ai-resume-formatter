@@ -1,6 +1,6 @@
 # 📄 AI Resume Processor
 
-A web-based resume formatting system powered by Google's Gemini 2.5 Flash model. This tool automatically parses, restructures, and formats resumes into professional templates using LLM workflows.
+A web-based resume formatting system powered by Google's Gemini 3.5 Flash-Lite model. This tool automatically parses, restructures, and formats resumes into professional templates using LLM workflows.
 
 ## ✨ Features
 
@@ -47,7 +47,7 @@ graph TD
 
 ### Backend
 - **Framework**: FastAPI (Python)
-- **AI/LLM**: LangChain, Google Gemini (Gemini 2.5 Flash)
+- **AI/LLM**: LangChain, Google Gemini (Gemini 3.5 Flash-Lite)
 - **Database**: PostgreSQL (via psycopg2)
 - **Processing**: PyPDF2, python-docx
 - **Containerization**: Docker & Docker Compose

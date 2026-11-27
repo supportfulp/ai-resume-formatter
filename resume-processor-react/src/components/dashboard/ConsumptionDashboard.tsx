@@ -176,18 +176,18 @@ const ConsumptionDashboard: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h4 className="font-semibold mb-2">Gemini 2.5 Flash Pricing (as of 2024):</h4>
+              <h4 className="font-semibold mb-2">Gemini 3.5 Flash-Lite Pricing (as of Nov 2026):</h4>
               <ul className="space-y-1 text-sm">
-                <li>• <strong>Input Tokens:</strong> $0.000125 per 1K tokens</li>
-                <li>• <strong>Output Tokens:</strong> $0.000375 per 1K tokens</li>
+                <li>• <strong>Input Tokens:</strong> $0.0003 per 1K tokens</li>
+                <li>• <strong>Output Tokens:</strong> $0.0025 per 1K tokens</li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-2">Cost Calculation:</h4>
               <ul className="space-y-1 text-sm">
-                <li>• Input Cost = (Input Tokens ÷ 1000) × $0.000125</li>
-                <li>• Output Cost = (Output Tokens ÷ 1000) × $0.000375</li>
+                <li>• Input Cost = (Input Tokens ÷ 1000) × $0.0003</li>
+                <li>• Output Cost = (Output Tokens ÷ 1000) × $0.0025</li>
                 <li>• Total Cost = Input Cost + Output Cost</li>
               </ul>
             </div>

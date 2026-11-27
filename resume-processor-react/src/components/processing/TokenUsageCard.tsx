@@ -121,8 +121,8 @@ const TokenUsageCard: React.FC = () => {
               <p className="font-medium">Model Used:</p>
               <p className="text-gray-600">{cost_estimation.model}</p>
               <p className="font-medium mt-2">Pricing:</p>
-              <p className="text-gray-600">Input: $0.000125/1K tokens</p>
-              <p className="text-gray-600">Output: $0.000375/1K tokens</p>
+              <p className="text-gray-600">Input: $0.0003/1K tokens</p>
+              <p className="text-gray-600">Output: $0.0025/1K tokens</p>
             </div>
           </div>
         </div>

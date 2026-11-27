@@ -29,6 +29,7 @@ load_dotenv()
 sys.path.append(str(Path(__file__).parent))
 
 try:
+    from src.llm import GEMINI_MODEL, INPUT_COST_PER_1K, OUTPUT_COST_PER_1K
     from src.chains.resume_restructure_chain import ResumeRestructureChain
     from src.chains.resume_formatter import ResumeFormatter
     from src.models.resume_models import ResumeProcessingRequest
@@ -379,9 +380,9 @@ async def process_resume(
                 total_tokens['output_tokens'] += usage.get('output_tokens', 0)
                 total_tokens['total_tokens'] += usage.get('total_tokens', 0)
             
-            # Calculate cost (Gemini 2.5 Flash pricing)
-            input_cost = (total_tokens['input_tokens'] / 1000) * 0.000125
-            output_cost = (total_tokens['output_tokens'] / 1000) * 0.000375
+            # Calculate cost (see src/llm.py for current rates)
+            input_cost = (total_tokens['input_tokens'] / 1000) * INPUT_COST_PER_1K
+            output_cost = (total_tokens['output_tokens'] / 1000) * OUTPUT_COST_PER_1K
             total_cost = input_cost + output_cost
             
             # Prepare results
@@ -401,7 +402,7 @@ async def process_resume(
                         "input_cost_usd": round(input_cost, 6),
                         "output_cost_usd": round(output_cost, 6),
                         "total_cost_usd": round(total_cost, 6),
-                        "model": "gemini-2.5-flash"
+                        "model": GEMINI_MODEL
                     }
                 }
             }
@@ -430,7 +431,7 @@ async def process_resume(
                             'input_cost_usd': input_cost,
                             'output_cost_usd': output_cost,
                             'total_cost_usd': total_cost,
-                            'model': 'gemini-2.5-flash'
+                            'model': GEMINI_MODEL
                         }
                         db_manager.save_token_usage(user_id, history_id, token_data)
                         
@@ -563,8 +564,8 @@ async def start_process(
                     total_tokens['output_tokens'] += usage.get('output_tokens', 0)
                     total_tokens['total_tokens'] += usage.get('total_tokens', 0)
 
-                input_cost = (total_tokens['input_tokens'] / 1000) * 0.000125
-                output_cost = (total_tokens['output_tokens'] / 1000) * 0.000375
+                input_cost = (total_tokens['input_tokens'] / 1000) * INPUT_COST_PER_1K
+                output_cost = (total_tokens['output_tokens'] / 1000) * OUTPUT_COST_PER_1K
                 total_cost = input_cost + output_cost
                 JOBS[job_id]['data']['token_usage'] = {
                     'total_tokens': total_tokens,
@@ -572,7 +573,7 @@ async def start_process(
                         'input_cost_usd': round(input_cost, 6),
                         'output_cost_usd': round(output_cost, 6),
                         'total_cost_usd': round(total_cost, 6),
-                        'model': 'gemini-2.5-flash'
+                        'model': GEMINI_MODEL
                     }
                 }
 

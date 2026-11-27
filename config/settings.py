@@ -10,8 +10,7 @@ class Settings(BaseSettings):
     
     # Google Gemini Configuration
     google_api_key: Optional[str] = None
-    gemini_model: str = "gemini-2.5-flash"
-    gemini_temperature: float = 0.1
+    gemini_model: str = "gemini-3.5-flash-lite"
     gemini_max_tokens: int = 4000
     
     # Application Configuration

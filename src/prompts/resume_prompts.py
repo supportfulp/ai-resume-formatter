@@ -1,6 +1,6 @@
 """Prompt templates for resume processing tasks."""
 
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 
 # Extract structured information from resume text

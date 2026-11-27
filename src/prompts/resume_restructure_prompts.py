@@ -1,6 +1,6 @@
 """Prompt templates for resume restructuring according to predefined template."""
 
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 
 # Main resume restructuring prompt

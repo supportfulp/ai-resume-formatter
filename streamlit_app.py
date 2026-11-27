@@ -16,6 +16,7 @@ load_dotenv()
 # Add src to path
 sys.path.append(str(Path(__file__).parent))
 
+from src.llm import GEMINI_MODEL, INPUT_COST_PER_1K, OUTPUT_COST_PER_1K
 from src.chains.resume_restructure_chain import ResumeRestructureChain
 from src.chains.resume_formatter import ResumeFormatter
 from src.models.resume_models import ResumeProcessingRequest
@@ -549,10 +550,9 @@ def process_resume_3_steps(pdf_file, api_key: str, custom_prompt: str = None) ->
         
         print(f"Total tokens tracked: {total_tokens}")
         
-        # Calculate cost (Gemini 2.5 Flash pricing as of 2024)
-        # Input: $0.000125 per 1K tokens, Output: $0.000375 per 1K tokens
-        input_cost = (total_tokens['input_tokens'] / 1000) * 0.000125
-        output_cost = (total_tokens['output_tokens'] / 1000) * 0.000375
+        # Calculate cost (see src/llm.py for current rates)
+        input_cost = (total_tokens['input_tokens'] / 1000) * INPUT_COST_PER_1K
+        output_cost = (total_tokens['output_tokens'] / 1000) * OUTPUT_COST_PER_1K
         total_cost = input_cost + output_cost
         
         # Prepare results
@@ -572,7 +572,7 @@ def process_resume_3_steps(pdf_file, api_key: str, custom_prompt: str = None) ->
                     "input_cost_usd": round(input_cost, 6),
                     "output_cost_usd": round(output_cost, 6),
                     "total_cost_usd": round(total_cost, 6),
-                    "model": "gemini-2.5-flash"
+                    "model": GEMINI_MODEL
                 }
             }
         }
@@ -1186,8 +1186,8 @@ def show_resume_processing_tab():
                                     st.caption("**Model Used:**")
                                     st.write(cost_info.get('model', 'Unknown'))
                                     st.caption("**Pricing:**")
-                                    st.write("Input: $0.000125/1K tokens")
-                                    st.write("Output: $0.000375/1K tokens")
+                                    st.write(f"Input: ${INPUT_COST_PER_1K}/1K tokens")
+                                    st.write(f"Output: ${OUTPUT_COST_PER_1K}/1K tokens")
                 
                 st.info("💡 **Export Options:** You can export your resume as JSON, TXT, or DOCX format. Use the buttons below or the Quick Export section in the sidebar.")
                 
@@ -1359,14 +1359,14 @@ def show_consumption_dashboard_tab():
         key="pricing_info_card"
     ):
         st.markdown("""
-        **Gemini 2.5 Flash Pricing (as of 2024):**
+        **Gemini 3.5 Flash-Lite Pricing (as of Nov 2026):**
         
-        - **Input Tokens:** $0.000125 per 1K tokens
-        - **Output Tokens:** $0.000375 per 1K tokens
+        - **Input Tokens:** $0.0003 per 1K tokens
+        - **Output Tokens:** $0.0025 per 1K tokens
         
         **Cost Calculation:**
-        - Input Cost = (Input Tokens ÷ 1000) × $0.000125
-        - Output Cost = (Output Tokens ÷ 1000) × $0.000375
+        - Input Cost = (Input Tokens ÷ 1000) × $0.0003
+        - Output Cost = (Output Tokens ÷ 1000) × $0.0025
         - Total Cost = Input Cost + Output Cost
         """)
 

@@ -4,25 +4,21 @@ import json
 import re
 from typing import Dict, Any, Optional
 from datetime import datetime
-from langchain_google_genai import ChatGoogleGenerativeAI
+from ..llm import make_llm, response_text
 
 from ..models.resume_models import ResumeData, ResumeProcessingRequest, ResumeProcessingResponse
 from ..prompts.resume_restructure_prompts import RESUME_RESTRUCTURE_PROMPT
 from ..adapters.pdf_adapter import PDFAdapter
 from ..adapters.docx_adapter import DOCXAdapter
 from ..utils.text_processor import TextProcessor
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 
 class ResumeRestructureChain:
     """Chain for restructuring resumes according to predefined template."""
     
     def __init__(self, api_key: Optional[str] = None, custom_prompt: Optional[str] = None):
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            temperature=0.1,
-            google_api_key=api_key
-        )
+        self.llm = make_llm(api_key)
         
         # Use custom prompt if provided, otherwise use default
         if custom_prompt:
@@ -189,7 +185,7 @@ class ResumeRestructureChain:
             })
             
             # Extract the formatted content
-            formatted_resume = result.content if hasattr(result, 'content') else str(result)
+            formatted_resume = response_text(result)
             
             return formatted_resume.strip()
             
@@ -228,7 +224,7 @@ class ResumeRestructureChain:
             print(f"Restructure usage metadata: {self.last_usage_metadata}")
             
             # Extract the formatted content
-            formatted_resume = result.content if hasattr(result, 'content') else str(result)
+            formatted_resume = response_text(result)
             
             return formatted_resume.strip()
             

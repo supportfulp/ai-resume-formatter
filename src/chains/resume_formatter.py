@@ -3,9 +3,9 @@
 import json
 import re
 from typing import Dict, Any, Optional
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 
+from ..llm import make_llm, response_text
 from ..models.resume_models import ResumeData, ResumeProcessingRequest, ResumeProcessingResponse
 from ..prompts.resume_prompts import (
     EXTRACT_INFO_PROMPT,
@@ -22,11 +22,7 @@ class ResumeFormatter:
     """Main resume formatting chain."""
     
     def __init__(self, api_key: Optional[str] = None):
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            temperature=0.1,
-            google_api_key=api_key
-        )   
+        self.llm = make_llm(api_key)
         
         # Initialize chains using new RunnableSequence API
         self.extract_chain = EXTRACT_INFO_PROMPT | self.llm
@@ -69,7 +65,7 @@ class ResumeFormatter:
         print(f"Extract usage metadata: {self.last_usage_metadata}")
         
         # Clean the response - remove markdown formatting if present
-        content = result.content if hasattr(result, 'content') else str(result)
+        content = response_text(result)
         content = content.strip()
         
         # Try to extract JSON from the response
@@ -81,6 +77,9 @@ class ResumeFormatter:
             # If no JSON found, try parsing the entire response
             data = json.loads(content)
         
+        # Gemini 3.x sometimes writes missing values as the string "null"
+        data = self._normalize_null_strings(data)
+
         # Clean up null values and provide defaults
         if data.get('email') is None:
             data['email'] = None  # This will be handled by Optional[EmailStr]
@@ -114,6 +113,18 @@ class ResumeFormatter:
         #     print(f"Response content: {content if 'content' in locals() else 'No content'}")
         #     raise ValueError(f"Failed to extract structured data: {e}")
     
+    @classmethod
+    def _normalize_null_strings(cls, value):
+        """Turn "null"/"none"/"n/a"/"" strings into real None, recursively."""
+        if isinstance(value, dict):
+            return {k: cls._normalize_null_strings(v) for k, v in value.items()}
+        if isinstance(value, list):
+            cleaned = (cls._normalize_null_strings(v) for v in value)
+            return [v for v in cleaned if v is not None]
+        if isinstance(value, str) and value.strip().lower() in ("null", "none", "n/a", ""):
+            return None
+        return value
+
     def _enhance_content(self, text: str, target_role: Optional[str] = None) -> str:
         """Enhance resume content."""
         if not target_role:
@@ -129,7 +140,7 @@ class ResumeFormatter:
             self.last_enhance_usage = getattr(result, 'usage_metadata', {})
             print(f"Enhance usage metadata: {self.last_enhance_usage}")
             
-            return result.content if hasattr(result, 'content') else str(result)
+            return response_text(result)
         except Exception as e:
             print(f"Warning: Content enhancement failed: {e}")
             return text
@@ -146,7 +157,7 @@ class ResumeFormatter:
             self.last_format_usage = getattr(result, 'usage_metadata', {})
             print(f"Format usage metadata: {self.last_format_usage}")
             
-            return result.content if hasattr(result, 'content') else str(result)
+            return response_text(result)
         except Exception as e:
             raise ValueError(f"Failed to format resume: {e}")
     
@@ -163,7 +174,7 @@ class ResumeFormatter:
             self.last_ats_usage = getattr(result, 'usage_metadata', {})
             print(f"ATS usage metadata: {self.last_ats_usage}")
             
-            return result.content if hasattr(result, 'content') else str(result)
+            return response_text(result)
         except Exception as e:
             print(f"Warning: ATS optimization failed: {e}")
             return text
