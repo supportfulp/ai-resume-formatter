@@ -1,124 +1,20 @@
-services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:13.21-alpine3.21
-    container_name: resume-processor-db
-    environment:
-      POSTGRES_DB: resume_processor
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-    ports:
-      - "5432:5432"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d resume_processor"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    networks:
-      - resume-network
-
-  # FastAPI Backend
-  api-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: resume-processor-api
-    ports:
-      - "8000:8000"
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=resume_processor
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - PYTHONPATH=/app
-    volumes:
-      # Mount source code for development (comment out for production)
-      - ./src:/app/src
-      - ./api_server.py:/app/api_server.py
-      - ./database.py:/app/database.py
-      - ./requirements.txt:/app/requirements.txt
-      # Mount output directory for persistent storage
-      - ./output:/app/output
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - resume-network
-
-  # React Frontend
-  react-app:
-    build:
-      context: ./resume-processor-react
-      dockerfile: Dockerfile
-    container_name: resume-processor-react
-    ports:
-      - "3000:3000"
-    environment:
-      - REACT_APP_API_URL=http://api-server:8000
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      # Mount source code for development (comment out for production)
-      - ./resume-processor-react/src:/app/src
-      - ./resume-processor-react/public:/app/public
-      - ./resume-processor-react/package.json:/app/package.json
-    depends_on:
-      - api-server
-    restart: unless-stopped
-    networks:
-      - resume-network
-
-
-  # # React Frontend (Production)
-  # react-app-prod:
-  #   build:
-  #     context: ./resume-processor-react
-  #     dockerfile: Dockerfile.prod
-  #   container_name: resume-processor-react-prod
-  #   ports:
-  #     - "3000:80"
-  #   depends_on:
-  #     - api-server
-  #   restart: unless-stopped
-  #   networks:
-  #     - resume-network
-  #   profiles:
-  #     - production
-
-  # # Optional: Add a reverse proxy with nginx for production
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: resume-processor-nginx
-  #   ports:
-  #     - "80:80"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
-  #   depends_on:
-  #     - api-server
-  #     - react-app
-  #   restart: unless-stopped
-  #   networks:
-  #     - resume-network
-  #   profiles:
-  #     - production
-
-networks:
-  resume-network:
-    driver: bridge
-
-volumes:
-  postgres_data:
-    driver: local
-  output-data: 
+langchain-core>=1.8,<2
+langchain-google-genai>=4.5,<5
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+pypdf2>=3.0.0
+python-docx==1.2.0
+jinja2>=3.1.0
+fastapi>=0.104.0
+uvicorn>=0.24.0
+streamlit>=1.28.0
+streamlit-shadcn-ui>=0.1.18
+pytest>=7.4.0
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.5.0
+email-validator>=2.0.0
+watchdog>=6.0.0
+psycopg2-binary>=2.9.10
+python-multipart>=0.0.20
+cryptography>=42.0.5

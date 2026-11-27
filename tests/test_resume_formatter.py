@@ -12,7 +12,7 @@ class TestResumeFormatter:
     @pytest.fixture
     def formatter(self):
         """Create formatter instance for testing."""
-        with patch('src.chains.resume_formatter.ChatGoogleGenerativeAI'):
+        with patch('src.chains.resume_formatter.make_llm'):
             return ResumeFormatter(api_key="test_key")
     
     @pytest.fixture
@@ -54,11 +54,28 @@ class TestResumeFormatter:
         result = formatter._extract_text("test.pdf")
         assert result == "Sample resume text"
     
-    @patch('src.chains.resume_formatter.LLMChain.run')
-    def test_extract_structured_data(self, mock_run, formatter):
+    def test_extract_structured_data(self, formatter):
         """Test structured data extraction."""
-        mock_run.return_value = '{"name": "John Doe", "email": "john@example.com"}'
+        formatter.extract_chain = Mock()
+        formatter.extract_chain.invoke.return_value = Mock(
+            content='```json\n{"name": "John Doe", "email": "john@example.com"}\n```',
+            usage_metadata={"input_tokens": 10, "output_tokens": 5, "total_tokens": 15},
+        )
         result = formatter._extract_structured_data("Sample text")
         assert isinstance(result, ResumeData)
         assert result.name == "John Doe"
         assert result.email == "john@example.com" 
+
+def test_response_text_handles_gemini3_content_blocks():
+    """Gemini 3.x returns a list of content blocks instead of a string."""
+    from src.llm import response_text
+    blocks = [{"type": "text", "text": '{"name": '}, {"type": "text", "text": '"Jo"}', "extras": {"signature": "x"}}]
+    assert response_text(Mock(content=blocks)) == '{"name": "Jo"}'
+    assert response_text(Mock(content="plain")) == "plain"
+
+
+def test_null_strings_become_none():
+    from src.chains.resume_formatter import ResumeFormatter
+    data = {"email": "null", "phone": "N/A", "skills": ["Go", "null"], "experience": [{"company": "None"}]}
+    assert ResumeFormatter._normalize_null_strings(data) == {
+        "email": None, "phone": None, "skills": ["Go"], "experience": [{"company": None}]}

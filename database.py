@@ -145,7 +145,7 @@ class DatabaseManager:
                         input_cost_usd DECIMAL(10, 6) NOT NULL DEFAULT 0,
                         output_cost_usd DECIMAL(10, 6) NOT NULL DEFAULT 0,
                         total_cost_usd DECIMAL(10, 6) NOT NULL DEFAULT 0,
-                        model VARCHAR(50) NOT NULL DEFAULT 'gemini-2.5-flash',
+                        model VARCHAR(50) NOT NULL DEFAULT 'gemini-3.5-flash-lite',
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
@@ -506,7 +506,7 @@ class DatabaseManager:
                         token_data.get('input_cost_usd', 0),
                         token_data.get('output_cost_usd', 0),
                         token_data.get('total_cost_usd', 0),
-                        token_data.get('model', 'gemini-2.5-flash')
+                        token_data.get('model', 'gemini-3.5-flash-lite')
                     ))
                     conn.commit()
                     logger.info(f"Token usage saved for user {user_id}")
